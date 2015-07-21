@@ -48,8 +48,7 @@ matrix_t *create_matrix(size_t m, size_t n){
 	S->pointer = mycalloc(m, int*);
 	for (i = 0; i < m; i++) {
       S->pointer[i] = mycalloc(n, int);
-    }	
-	
+    }		
 	return S;
 }
 
@@ -94,7 +93,6 @@ void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1,
 	int m = 0; 
 	int i = ks1->l;
 	int j = ks2->l;
-	
 	while(i>0 || j >0){
 		switch(S->pointer[i][j]){
 			case LEFT:
