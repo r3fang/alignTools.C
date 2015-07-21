@@ -1,8 +1,8 @@
 /*--------------------------------------------------------------------*/
-/* GlobalJumpAligner.c                                                */
+/* global.c 		                                                  */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
-/* Predict Gene Fusion by given fastq files.                          */
+/* Pair wise global alignment without affine gap.                     */
 /*--------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +196,6 @@ int main(int argc, char *argv[]) {
 	r2->s = mycalloc(ks1->l + ks2->l, char);
 	printf("score=%f\n", global(ks1, ks2, r1, r2));
 	printf("%s\n%s\n", r1->s, r2->s);
-	
 	kstring_destory(ks1);
 	kstring_destory(ks2);
 	kstring_destory(r1);
