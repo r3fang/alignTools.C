@@ -15,10 +15,14 @@
 
 KSEQ_INIT(gzFile, gzread);
 
+//--------------
+#define MAX_BASE_NUM			1000
+
 #define GL_ERR_NONE 			0
 #define GAP 					-1.0
 #define MATCH 					2.0
 #define MISMATCH 				-0.5
+
 // POINTER STATE
 #define LEFT 					100
 #define DIAGONAL 				200
@@ -32,6 +36,12 @@ typedef struct {
   double **score;
   int  **pointer;
 } matrix_t;
+
+typedef struct {
+  unsigned int m;
+  double **score;
+  char* bases;
+} scoring_matrix_t;
 
 matrix_t *create_matrix(size_t m, size_t n){
 	size_t i, j; 
@@ -50,6 +60,7 @@ matrix_t *create_matrix(size_t m, size_t n){
 	
 	return S;
 }
+
 
 char* strrev(char *s){
 	if(s == NULL) return NULL;
@@ -178,12 +189,42 @@ void kstring_destory(kstring_t *ks){
 	free(ks);
 }
 
+/* load the scoring matrix */
+scoring_matrix_t *load_score_mat(char* fname){
+	int i, j, n;
+	int *fields;
+	FILE *fp;
+	scoring_matrix_t *S = mycalloc(1, scoring_matrix_t);
+	kstring_t *buffer = mycalloc(1, kstring_t);
+	buffer->s = mycalloc(4096, char);		
+	if((fp=fopen(fname, "r")) == NULL) exit(-1);
+	getline(&(buffer->s), &(buffer->l), fp);
+	fields = ksplit(buffer, 0, &n);
+	/* initilize the S*/
+	S->m = n;
+	S->score = mycalloc(n, double*);
+	for(i=0; i<S->m; i++) S->score[i] = mycalloc(n, double);
+	S->bases = mycalloc(n, char);
+	for (j = 0; j < n; j++){S->bases[j] = *(buffer->s + fields[j]);}
+	
+	i=0;
+	while ((getline(&(buffer->s), &(buffer->l), fp)) != -1) {
+		fields = ksplit(buffer, 0, &n);
+		for (j = 0; j < n; j++){
+			S->score[i][j] = atof(buffer->s + fields[j]);			
+		}
+		i ++;
+	}
+	fclose(fp);
+   	return S;
+}
+
 /* main function. */
-int main(int argc, char *argv[]) {	
+int main(int argc, char *argv[]) {
+	//scoring_matrix_t *S = load_score_mat("test/BLOSUM62.txt");
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	
 	if (argc == 1) {
 		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
 		return 1;
