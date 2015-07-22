@@ -29,9 +29,7 @@ KSEQ_INIT(gzFile, gzread);
 
 //--------------
 #define GL_ERR_NONE 			 0
-#define GAP 					-1.0
-#define MATCH 					 2.0
-#define MISMATCH 				-0.5
+#define GAP 					-5.0
 
 // POINTER STATE
 #define LEFT                    100
@@ -48,6 +46,14 @@ typedef struct {
   int  **pointer;
 } matrix_t;
 
+typedef struct {
+  unsigned int m;
+  double **score;
+  char* bases;
+} scoring_matrix_t;
+
+scoring_matrix_t *BLOSUM62;
+	
 matrix_t *create_matrix(size_t m, size_t n){
 	size_t i, j; 
 	matrix_t *S = mycalloc(1, matrix_t);
@@ -80,7 +86,20 @@ char* strrev(char *s){
 	s[l] = '\0';
 	return s;
 }
-	
+
+/* scoring */
+double match(char a, char b, scoring_matrix_t *S){
+	if(S==NULL) die("scoring: input error");
+	char *s_a, *s_b;
+	int a_i, b_i;
+	s_a = strchr (S->bases, a);
+	s_b = strchr (S->bases, b);
+	if(s_a == NULL || s_b == NULL) return -INFINITY;
+	a_i = s_a - S->bases;
+	b_i = s_b - S->bases;	
+	return S->score[a_i][b_i];
+}
+
 int destory_matrix(matrix_t *S){
 	if(S == NULL) die("destory_matrix: parameter error\n");
 	int i, j;
@@ -146,8 +165,11 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
-	        double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			double new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
+			//printf("%c%c-%f\n", s1->s[i-1], s2->s[j-1], new_score);
+	        //double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
 			S->pointer[i][j] = max4(&S->score[i][j], S->score[i][j-1] + GAP, S->score[i-1][j-1] + new_score, S->score[i-1][j] + GAP, 0.0);
+			printf("%f\n", S->score[i][j]);
 			if(max_score < S->score[i][j]){
 				max_score = S->score[i][j];
 				i_max = i;
@@ -157,7 +179,7 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	}
 	// find max value of S->score, can be anywhere in matrix
 	// stop when we get a cell with 0
-	trace_back(S, s1, s2, r1, r2, i_max, j_max);
+	//trace_back(S, s1, s2, r1, r2, i_max, j_max);
 	if(destory_matrix(S) != GL_ERR_NONE) die("smith_waterman: fail to destory matrix");
 	return max_score;
 }
@@ -200,9 +222,43 @@ void kstring_destory(kstring_t *ks){
 	free(ks);
 }
 
+/* load the scoring matrix */
+scoring_matrix_t *load_BLOSUM62(char* fname){
+	int i, j, n;
+	int *fields;
+	FILE *fp;
+	scoring_matrix_t *S = mycalloc(1, scoring_matrix_t);
+	kstring_t *buffer = mycalloc(1, kstring_t);
+	buffer->s = mycalloc(4096, char);		
+	if((fp=fopen(fname, "r")) == NULL) die("load_score_mat: %s not exists", fname);
+	getline(&(buffer->s), &(buffer->l), fp);
+	fields = ksplit(buffer, 0, &n);
+	/* initilize the S*/
+	S->m = n;
+	S->score = mycalloc(n, double*);
+	for(i=0; i<S->m; i++) S->score[i] = mycalloc(n, double);
+	S->bases = mycalloc(n, char);
+	for (j = 0; j < n; j++){S->bases[j] = *(buffer->s + fields[j]);}
+	
+	i=0;
+	while ((getline(&(buffer->s), &(buffer->l), fp)) != -1) {
+		fields = ksplit(buffer, 0, &n);
+		for (j = 0; j < n; j++){
+			S->score[i][j] = atof(buffer->s + fields[j]);			
+		}
+		i ++;
+	}
+	fclose(fp);
+   	return S;
+}
+
 /* main function. */
 int main(int argc, char *argv[]) {
-	kstring_t *ks1, *ks2; 
+	if((BLOSUM62 = load_BLOSUM62("test/PAM250.txt")) == NULL) die("fail to load BLOSUM62 table at %s", "test/BLOSUM62.txt");
+	printf("%f\n", match('E', 'E', BLOSUM62));
+	printf("%f\n", match('A', 'N', BLOSUM62));
+	
+	kstring_t *ks1, *ks2;
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
 	if (argc == 1) {
@@ -215,6 +271,7 @@ int main(int argc, char *argv[]) {
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
+	printf("%s\n%s\n", ks1->s, ks2->s);
 	printf("score=%f\n", align(ks1, ks2, r1, r2));
 	printf("%s\n%s\n", r1->s, r2->s);
 	kstring_destory(ks1);
