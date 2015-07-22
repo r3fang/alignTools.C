@@ -28,7 +28,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
-#include "htslib/kstring.h"
+#include "kstring.h"
 
 int kvsprintf(kstring_t *s, const char *fmt, va_list ap)
 {
