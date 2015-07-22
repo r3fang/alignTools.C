@@ -22,7 +22,7 @@ KSEQ_INIT(gzFile, gzread);
 //--------------
 #define GAP                     -3.0
 #define EXTENSION               -1.0
-#define MATCH                    1.0
+#define MATCH                    2.0
 #define MISMATCH                -1.0
 
 // state
@@ -157,11 +157,7 @@ void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, k
 			default:
 				break;
 			}
-	}
-	printf("%d\t%d\n", i, j);
-	printf("%d\t%d\n", i, j);
-	//printf("%s\n%s\n", res_ks1->s, res_ks2->s);
-	
+	}	
 	if(j>0){while(j>0){
 			res_ks1->s[cur] = '-';	
 			res_ks2->s[cur++] = s2->s[--j];				
@@ -208,18 +204,12 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	}
 	double max_score;
 	int max_state;
-	//printf("L=%f\tM=%f\tU=%f\n", S->L[s1->l][s2->l], S->M[s1->l][s2->l], S->U[s1->l][s2->l]);
-	//for(i=0; i<=s1->l; i++){
-	//	for(j=0; j<=s2->l; j++){
-	//		printf("%d\t", S->pointerM[i][j]);
-	//	}
-	//	printf("\n");
-	//}
 	ind = max3(&max_score, S->L[s1->l][s2->l], S->M[s1->l][s2->l], S->U[s1->l][s2->l]);
 	if(ind == 1) max_state = LOW;
 	if(ind == 2) max_state = MID;
 	if(ind == 3) max_state = UPP;
 	trace_back(S, s1, s2, r1, r2, max_state);	
+	destory_matrix(S);
 	return max_score;
 }
 
