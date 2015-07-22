@@ -1,8 +1,23 @@
 /*--------------------------------------------------------------------*/
-/* global.c                                                           */
+/* global_affine_gap.c 	                                              */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
-/* Pair wise global alignment with affine gap penality.               */
+/* Date: 07-22-2015                                                   */
+/* Pair wise global alignment with affine gap.                        */
+/* initilize L(i,j), M(i,j), U(i,j):                                  */
+/* M(0,0) = 0                                                         */
+/* M(i,0) = -INF               (i>0 )                                 */
+/* M(0,j) = -INF               (j>0 )                                 */
+/* L(i,0) = open + extension*i (i>=0)                                 */
+/* L(0,j) = -INF               (j>0 )                                 */
+/* U(0,j) = open + extension*j (j>=0)                                 */
+/* reccurrance relations:                                             */
+/* M(i,j) = max{M(i-1, j-1), U(i-1, j-1), L(i-1, j-1)}+s(x,y)         */
+/* U(i,j) = max{M(i-1, j)+gap+extension, U(i-1, j)+extension}         */
+/* L(i,j) = max{M(i, j-1)+gap+extension, L(i, j-1)+extension}         */
+/* Traceback:                                                         */
+/* start at largest of M(m,n), L(m,n), U(m,n)                         */
+/* Stop at any of M(0,0), I(0,0), U(0,0)                              */
 /*--------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>

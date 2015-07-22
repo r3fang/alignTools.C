@@ -27,7 +27,7 @@
 KSEQ_INIT(gzFile, gzread);
 
 //--------------
-#define GL_ERR_NONE 			0
+#define GL_ERR_NONE 			 0
 #define GAP 					-1.0
 #define MATCH 					2.0
 #define MISMATCH 				-0.5
@@ -64,12 +64,11 @@ matrix_t *create_matrix(size_t m, size_t n){
 	for(i=0; i < S->m; i++) S->score[i][0] = GAP*i;
 	for(j=0; j < S->n; j++) S->score[0][j] = GAP*j;	
 	
-	for(i=1; i < S->m; i++) S->pointer[i][0] = RIGHT;
-	for(j=1; j < S->n; j++) S->pointer[0][j] = LEFT;
+	for(i=0; i < S->m; i++) S->pointer[i][0] = RIGHT;
+	for(j=0; j < S->n; j++) S->pointer[0][j] = LEFT;
 	
 	return S;
 }
-
 
 char* strrev(char *s){
 	if(s == NULL) return NULL;
