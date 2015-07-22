@@ -20,10 +20,10 @@ KSEQ_INIT(gzFile, gzread);
 
 // penality
 //--------------
-#define GAP                     -1.0
-#define EXTENSION               -0.5
+#define GAP                     -2.0
+#define EXTENSION               -1.0
 #define MATCH                    2.0
-#define MISMATCH                -0.5
+#define MISMATCH                -1.0
 
 // state
 //--------------
@@ -75,12 +75,12 @@ matrix_t *create_matrix(size_t m, size_t n){
 	}
 	for(i=1; i<S->m; i++){
 		S->L[i][0] = DBL_MIN;
-		S->M[i][0] = GAP + EXTENSION*(i-1);
-		S->U[i][0] = GAP + EXTENSION*(i-1);
+		S->M[i][0] = GAP + EXTENSION*(i);
+		S->U[i][0] = GAP + EXTENSION*(i);
 	}
 	for(j=1; j<S->n; j++){
-		S->L[0][j] = GAP + EXTENSION*(j-1);
-		S->M[0][j] = GAP + EXTENSION*(j-1);
+		S->L[0][j] = GAP + EXTENSION*(j);
+		S->M[0][j] = GAP + EXTENSION*(j);
 		S->U[0][j] = DBL_MIN;
 	}
 	return S;
@@ -181,19 +181,17 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 			ind = max2(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP);
 			if(ind==1)	S->pointerL[i][j] = LOW;
 			if(ind==2)	S->pointerL[i][j] = MID;
-			//if(S->L[i][j] > maxScore){maxScore = S->L[i][j]; maxLayer = LOW;}
 			// MID
 			double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
 			ind = max3(&S->M[i][j], S->L[i][j], S->M[i-1][j-1]+new_score, S->U[i][j]);
+			//printf("%f\t%f\t%f\t%d\n", S->L[i][j], S->M[i-1][j-1]+new_score, S->U[i][j], ind);
 			if(ind==1)  S->pointerM[i][j] = LOW;
 			if(ind==2)  S->pointerM[i][j] = MID;
 			if(ind==3)  S->pointerM[i][j] = UPP;
-			//if(S->M[i][j] > maxScore){maxScore = S->M[i][j]; maxLayer = MID;}
 			// UPP
 			ind = max2(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP);
-			if(ind==1)	S->pointerU[i][j] = UPP;
+			if(ind==1)  S->pointerU[i][j] = UPP;
 			if(ind==2)	S->pointerU[i][j] = MID;
-			//if(S->U[i][j] > maxScore){maxScore = S->U[i][j]; maxLayer = UPP;}		
 		}
 	}
 	trace_back(S, s1, s2, r1, r2);	
