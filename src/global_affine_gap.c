@@ -1,8 +1,8 @@
 /*--------------------------------------------------------------------*/
-/* global.c 		                                                  */
+/* global.c                                                           */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
-/* Pair wise global alignment without affine gap.                     */
+/* Pair wise global alignment with affine gap penality.               */
 /*--------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,21 +16,22 @@
 KSEQ_INIT(gzFile, gzread);
 
 //--------------
-#define GL_ERR_NONE 			0
+#define GL_ERR_NONE              0
 
+// penality
 //--------------
-#define GAP 					-1.0
-#define EXTENSION 				-0.5
-#define MATCH 					2.0
-#define MISMATCH 				-0.5
+#define GAP                     -1.0
+#define EXTENSION               -0.5
+#define MATCH                    2.0
+#define MISMATCH                -0.5
 
+// state
 //--------------
-#define LOW						100
-#define MID						200
-#define UPP						300
+#define LOW                     100
+#define MID                     200
+#define UPP                     300
 
-typedef enum {true, false} bool;
-
+// DP matrix
 typedef struct {
   unsigned int m;
   unsigned int n;
@@ -39,9 +40,12 @@ typedef struct {
   double **U;  
   int **pointerL;
   int **pointerM;
-  int **pointerU;  
+  int **pointerU;
 } matrix_t;
 
+/*
+ * initilize matrix.	
+ */
 matrix_t *create_matrix(size_t m, size_t n){
 	size_t i, j; 
 	matrix_t *S = mycalloc(1, matrix_t);
@@ -53,7 +57,6 @@ matrix_t *create_matrix(size_t m, size_t n){
 	S->pointerL = mycalloc(m, int*);
 	S->pointerM = mycalloc(m, int*);
 	S->pointerU = mycalloc(m, int*);
-	
 	for (i = 0; i < m; i++) {
 		S->L[i] = mycalloc(n, double);
 		S->M[i] = mycalloc(n, double);
@@ -62,9 +65,29 @@ matrix_t *create_matrix(size_t m, size_t n){
 		S->pointerM[i] = mycalloc(n, int);
 		S->pointerU[i] = mycalloc(n, int);
 	}
+	// initlize DP matrix
+	for(i = 0; i<S->m; i++){
+		for(j = 0; j<n; j++){
+			S->L[i][j] = 0.0;
+			S->M[i][j] = 0.0;
+			S->U[i][j] = 0.0;
+		}
+	}
+	for(i=1; i<S->m; i++){
+		S->L[i][0] = DBL_MIN;
+		S->M[i][0] = GAP + EXTENSION*(i-1);
+		S->U[i][0] = GAP + EXTENSION*(i-1);
+	}
+	for(j=1; j<S->n; j++){
+		S->L[0][j] = GAP + EXTENSION*(j-1);
+		S->M[0][j] = GAP + EXTENSION*(j-1);
+		S->U[0][j] = DBL_MIN;
+	}
 	return S;
 }
-
+/*
+ * reverse a string
+ */
 char* strrev(char *s){
 	if(s == NULL) return NULL;
 	int l = strlen(s);
@@ -77,7 +100,9 @@ char* strrev(char *s){
 	s[l] = '\0';
 	return s;
 }
-
+/*
+ * destory matrix
+ */
 int destory_matrix(matrix_t *S){
 	if(S == NULL) die("destory_matrix: parameter error\n");
 	int i, j;
@@ -111,14 +136,12 @@ int max3(double *res, double a1, double a2, double a3){
 }
 
 void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int maxlayer){
-	int i = s1->l;
-	int j = s2->l;
-	int cur = 0;
-	int state = maxlayer;
+	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
+	int i = s1->l; int j = s2->l;
+	int cur = 0; int state = maxlayer;
 	while(i>0 && j>0){
-		//printf("%d\t%d\t%d\n", i, j, state);
 		if(state == LOW){
-			state = S->pointerL[i][j]; // jump to middle
+			state = S->pointerL[i][j]; // jump to next state
 			res_ks1->s[cur] = s1->s[--i];
 			res_ks2->s[cur++] = '-';
 		}
@@ -141,49 +164,31 @@ void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, k
 	res_ks2->s = strrev(res_ks2->s);
 }
 
-
+/*
+ * Global alignment with affine gap penality
+ */
 double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("align: parameter error\n");
-	size_t m   = s1->l + 1;
-	size_t n   = s2->l + 1;
+	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
 	int i, j;
-	for(i=0; i<S->m; i++){
-		for(j=0; j<n; j++){
-			S->L[i][j] = 0.0;
-			S->M[i][j] = 0.0;
-			S->U[i][j] = 0.0;
-		}
-	}
-	// initlize the border
-	for(i=1; i<S->m; i++){
-		S->L[i][0] = DBL_MIN;
-		S->M[i][0] = GAP + EXTENSION*(i-1);
-		S->U[i][0] = GAP + EXTENSION*(i-1);
-	}
-	for(j=1; j<S->n; j++){
-		S->L[0][j] = GAP + EXTENSION*(j-1);
-		S->M[0][j] = GAP + EXTENSION*(j-1);
-		S->U[0][j] = DBL_MIN;
-	}
 	double maxScore = DBL_MIN;
-	int maxLayer;
-	int ind;
+	int maxLayer, ind;
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
-			// low
+			// LOW
 			ind = max2(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP);
 			if(ind==1)	S->pointerL[i][j] = LOW;
 			if(ind==2)	S->pointerL[i][j] = MID;
             if(S->L[i][j] > maxScore){maxScore = S->L[i][j]; maxLayer = LOW;}
-			// middle
+			// MID
 			double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
 			ind = max3(&S->M[i][j], S->L[i][j], S->M[i-1][j-1]+new_score, S->U[i][j]);
 			if(ind==1)  S->pointerM[i][j] = LOW;
 			if(ind==2)  S->pointerM[i][j] = MID;
 			if(ind==3)  S->pointerM[i][j] = UPP;
             if(S->M[i][j] > maxScore){maxScore = S->M[i][j]; maxLayer = MID;}
-			// upper
+			// UPP
 			ind = max2(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP);
 			if(ind==1)	S->pointerU[i][j] = UPP;
 			if(ind==2)	S->pointerU[i][j] = MID;
@@ -206,12 +211,15 @@ char* str_toupper(char* s){
 	r[strlen(s)] = '\0';
 	return r;
 }
-
+/*
+ * read in kstring_t from fasta file 
+ */
 void kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
+	if(fname == NULL || str1 == NULL || str2 == NULL) die("kstring_read: parameter error");
 	gzFile fp;
 	kseq_t *seq;
-	fp = gzopen(fname, "r");
-	seq = kseq_init(fp);
+	if((fp = gzopen(fname, "r")) == NULL) die("kstring_read: gzopen fails\n");
+	if((seq = kseq_init(fp)) == NULL) die("kseq_init: gzopen fails\n");
 	int i, l;
 	char **tmp = mycalloc(3, char*);
 	i = 0;
@@ -226,7 +234,9 @@ void kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
 	kseq_destroy(seq);
 	gzclose(fp);
 }
-
+/*
+ * destory kstring_t
+ */
 void kstring_destory(kstring_t *ks){
 	free(ks->s);
 	free(ks);
