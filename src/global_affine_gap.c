@@ -20,9 +20,9 @@ KSEQ_INIT(gzFile, gzread);
 
 // penality
 //--------------
-#define GAP                     -2.0
+#define GAP                     -3.0
 #define EXTENSION               -1.0
-#define MATCH                    2.0
+#define MATCH                    1.0
 #define MISMATCH                -1.0
 
 // state
@@ -37,7 +37,7 @@ typedef struct {
   unsigned int n;
   double **L;
   double **M;
-  double **U;  
+  double **U;
   int **pointerL;
   int **pointerM;
   int **pointerU;
@@ -65,26 +65,31 @@ matrix_t *create_matrix(size_t m, size_t n){
 		S->pointerM[i] = mycalloc(n, int);
 		S->pointerU[i] = mycalloc(n, int);
 	}
-	// initlize DP matrix
-	for(i = 0; i<S->m; i++){
-		for(j = 0; j<n; j++){
-			S->L[i][j] = 0.0;
-			S->M[i][j] = 0.0;
-			S->U[i][j] = 0.0;
+	for(i=0; i<S->m; i++){
+		for(j=0; j<S->n; j++){
+			S->L[i][j] = -INFINITY;
+			S->M[i][j] = -INFINITY;
+			S->U[i][j] = -INFINITY;
 		}
 	}
+	
+	// initlize DP matrix
+	S->M[0][0] = 0.0;
+	S->L[0][0] = S->U[0][0] = GAP;
+	// initlize 0 column
 	for(i=1; i<S->m; i++){
-		S->L[i][0] = DBL_MIN;
-		S->M[i][0] = GAP + EXTENSION*(i);
-		S->U[i][0] = GAP + EXTENSION*(i);
+		S->L[i][0] = GAP + EXTENSION*(i);
+		S->M[i][0] = -INFINITY;
+		S->U[i][0] = -INFINITY;
 	}
 	for(j=1; j<S->n; j++){
-		S->L[0][j] = GAP + EXTENSION*(j);
-		S->M[0][j] = GAP + EXTENSION*(j);
-		S->U[0][j] = DBL_MIN;
+		S->L[0][j] = -INFINITY;
+		S->M[0][j] = -INFINITY;
+		S->U[0][j] = GAP + EXTENSION*(j);
 	}
 	return S;
 }
+
 /*
  * reverse a string
  */
@@ -100,6 +105,7 @@ char* strrev(char *s){
 	s[l] = '\0';
 	return s;
 }
+
 /*
  * destory matrix
  */
@@ -118,51 +124,51 @@ int destory_matrix(matrix_t *S){
 	return GL_ERR_NONE;
 }
 
-int max2(double *res, double a1, double a2){
-	*res = DBL_MIN;
-	int ind;
-	if(a1 >= *res){*res = a1; ind = 1;}
-	if(a2 >= *res){*res = a2; ind = 2;}
-	return ind;
-}
-
 int max3(double *res, double a1, double a2, double a3){
-	*res = DBL_MIN;
+	*res = -INFINITY;
 	int ind;
-	if(a1 >= *res){*res = a1; ind = 1;}
-	if(a2 >= *res){*res = a2; ind = 2;}
-	if(a3 >= *res){*res = a3; ind = 3;}
+	if(a1 > *res){*res = a1; ind = 1;}
+	if(a2 > *res){*res = a2; ind = 2;}
+	if(a3 > *res){*res = a3; ind = 3;}
 	return ind;
 }
 
-void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2){
+void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state){
 	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
 	int i = s1->l; int j = s2->l;
 	int cur = 0; 
-	int state = MID; // start tracing back from MID layer
-	while(i>0 && j>0){
-		if(state == LOW){
-			state = S->pointerL[i][j]; // jump to next state
-			res_ks1->s[cur] = s1->s[--i];
-			res_ks2->s[cur++] = '-';
-		}
-		if(state == MID){
-			state = S->pointerM[i][j];
-			if(state == MID){
-                res_ks1->s[cur] = s1->s[--i];
-                res_ks2->s[cur++] = s2->s[--j];
+	printf("%d\n", state);
+	while(i > 0 && j > 0){
+		switch(state){
+			case LOW:
+				printf("i=%d\tj=%d\tLOW\n", i, j);
+				state = S->pointerL[i][j]; // change to next state
+				res_ks1->s[cur] = s1->s[--i];
+				res_ks2->s[cur++] = '-';
+				break;
+			case MID:
+				printf("i=%d\tj=%d\tMID\n", i, j);
+				state = S->pointerM[i][j]; // change to next state
+				if(state == MID){
+                	res_ks1->s[cur] = s1->s[--i];
+                	res_ks2->s[cur++] = s2->s[--j];
+				}
+				break;
+			case UPP:
+				printf("i=%d\tj=%d\tUPP\n", i, j);
+				state = S->pointerU[i][j];
+				res_ks1->s[cur] = '-';
+            	res_ks2->s[cur++] = s2->s[--j];
+				break;
+			default:
+				break;
 			}
-		}
-		if(state == UPP){
-			state = S->pointerU[i][j];
-            res_ks1->s[cur] = '-';
-			res_ks2->s[cur++] = s2->s[--j];
-		}
 	}
+	printf("i=%d\tj=%d\n", i, j);
 	res_ks1->l = cur;
 	res_ks2->l = cur;	
-	res_ks1->s = strrev(res_ks1->s);
-	res_ks2->s = strrev(res_ks2->s);
+	//res_ks1->s = strrev(res_ks1->s);
+	//res_ks2->s = strrev(res_ks2->s);
 }
 
 /*
@@ -173,29 +179,41 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
 	int i, j;
-	double maxScore = DBL_MIN;
-	int maxLayer, ind;
+	int ind;
+	// recurrance relation
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
-			// LOW
-			ind = max2(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP);
-			if(ind==1)	S->pointerL[i][j] = LOW;
-			if(ind==2)	S->pointerL[i][j] = MID;
 			// MID
 			double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
-			ind = max3(&S->M[i][j], S->L[i][j], S->M[i-1][j-1]+new_score, S->U[i][j]);
-			//printf("%f\t%f\t%f\t%d\n", S->L[i][j], S->M[i-1][j-1]+new_score, S->U[i][j], ind);
-			if(ind==1)  S->pointerM[i][j] = LOW;
-			if(ind==2)  S->pointerM[i][j] = MID;
-			if(ind==3)  S->pointerM[i][j] = UPP;
+			ind = max3(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score);
+			//if(ind==1)  S->pointerM[i][j] = LOW;
+			//if(ind==2)  S->pointerM[i][j] = MID;
+			//if(ind==3)  S->pointerM[i][j] = UPP;
+			// LOW
+			ind = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP+EXTENSION, -INFINITY);
+			//if(ind==1)	S->pointerL[i][j] = LOW; // stay in state LOW
+			//if(ind==2)	S->pointerL[i][j] = MID; // jump to state MID
 			// UPP
-			ind = max2(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP);
-			if(ind==1)  S->pointerU[i][j] = UPP;
-			if(ind==2)	S->pointerU[i][j] = MID;
+			ind = max3(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP+EXTENSION, -INFINITY);
+			//if(ind==1)  S->pointerU[i][j] = UPP;
+			//if(ind==2)	S->pointerU[i][j] = MID;
 		}
 	}
-	trace_back(S, s1, s2, r1, r2);	
-	return S->M[s1->l][s2->l];
+	double max_score;
+	int max_state;
+	//printf("L=%f\tM=%f\tU=%f\n", S->L[s1->l][s2->l], S->M[s1->l][s2->l], S->U[s1->l][s2->l]);
+	for(i=0; i<=s1->l; i++){
+		for(j=0; j<=s2->l; j++){
+			printf("%f\t", S->L[i][j]);
+		}
+		printf("\n");
+	}
+	ind = max3(&max_score, S->L[s1->l][s2->l], S->M[s1->l][s2->l], S->U[s1->l][s2->l]);
+	if(ind == 1) max_state = LOW;
+	if(ind == 2) max_state = MID;
+	if(ind == 3) max_state = UPP;
+	//trace_back(S, s1, s2, r1, r2, max_state);	
+	return max_score;
 }
 
 char* str_toupper(char* s){
@@ -257,7 +275,7 @@ int main(int argc, char *argv[]) {
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
 	printf("score=%f\n", align(ks1, ks2, r1, r2));
-	printf("%s\n%s\n", r1->s, r2->s);
+	//printf("%s\n%s\n", r1->s, r2->s);
 	kstring_destory(ks1);
 	kstring_destory(ks2);
 	kstring_destory(r1);
