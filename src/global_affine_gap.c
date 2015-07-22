@@ -158,6 +158,10 @@ void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, k
 				break;
 			}
 	}
+	printf("%d\t%d\n", i, j);
+	printf("%d\t%d\n", i, j);
+	//printf("%s\n%s\n", res_ks1->s, res_ks2->s);
+	
 	if(j>0){while(j>0){
 			res_ks1->s[cur] = '-';	
 			res_ks2->s[cur++] = s2->s[--j];				
@@ -272,6 +276,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	kstring_read(argv[1], ks1, ks2);
+	printf("%s\n%s\n", ks1->s, ks2->s);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	kstring_t *r1 = mycalloc(1, kstring_t);
 	kstring_t *r2 = mycalloc(1, kstring_t);
