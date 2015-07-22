@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------*/
-/* local.c 		                                                      */
+/* local.c                                                            */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
 /* Date: 07-22-2015                                                   */
@@ -119,7 +119,7 @@ int max4(double *res, double a1, double a2, double a3, double a4){
 	if(a1 > *res){*res = a1; state = LEFT;}
 	if(a2 > *res){*res = a2; state = DIAGONAL;}
 	if(a3 > *res){*res = a3; state = RIGHT;}	
-	if(a4 > *res){*res = a3; state = HOME;}
+	if(a4 > *res){*res = a4; state = HOME;}
 	return state;
 }
 
@@ -166,10 +166,7 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
 			double new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
-			//printf("%c%c-%f\n", s1->s[i-1], s2->s[j-1], new_score);
-	        //double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
 			S->pointer[i][j] = max4(&S->score[i][j], S->score[i][j-1] + GAP, S->score[i-1][j-1] + new_score, S->score[i-1][j] + GAP, 0.0);
-			printf("%f\n", S->score[i][j]);
 			if(max_score < S->score[i][j]){
 				max_score = S->score[i][j];
 				i_max = i;
@@ -179,7 +176,7 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	}
 	// find max value of S->score, can be anywhere in matrix
 	// stop when we get a cell with 0
-	//trace_back(S, s1, s2, r1, r2, i_max, j_max);
+	trace_back(S, s1, s2, r1, r2, i_max, j_max);
 	if(destory_matrix(S) != GL_ERR_NONE) die("smith_waterman: fail to destory matrix");
 	return max_score;
 }
@@ -255,8 +252,6 @@ scoring_matrix_t *load_BLOSUM62(char* fname){
 /* main function. */
 int main(int argc, char *argv[]) {
 	if((BLOSUM62 = load_BLOSUM62("test/PAM250.txt")) == NULL) die("fail to load BLOSUM62 table at %s", "test/BLOSUM62.txt");
-	printf("%f\n", match('E', 'E', BLOSUM62));
-	printf("%f\n", match('A', 'N', BLOSUM62));
 	
 	kstring_t *ks1, *ks2;
 	ks1 = mycalloc(1, kstring_t);
@@ -271,8 +266,7 @@ int main(int argc, char *argv[]) {
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("%s\n%s\n", ks1->s, ks2->s);
-	printf("score=%f\n", align(ks1, ks2, r1, r2));
+	printf("%f\n", align(ks1, ks2, r1, r2));
 	printf("%s\n%s\n", r1->s, r2->s);
 	kstring_destory(ks1);
 	kstring_destory(ks2);
