@@ -16,7 +16,6 @@
 #include "kstring.h"
 KSEQ_INIT(gzFile, gzread);
 
-
 typedef struct {
   unsigned int m;
   double **score;
