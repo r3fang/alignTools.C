@@ -66,7 +66,7 @@
 #define EXTENSION               -1.0
 #define MISMATCH                -1.0
 #define MATCH                    2.0
-#define JUMP_PENALITY           -10.0
+#define JUMP_PENALITY           -8.0
 
 // state
 //--------------
@@ -164,10 +164,9 @@ int max4(double *res, double a1, double a2, double a3, double a4){
 	return state;
 }
 
-void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
+void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state, int i, int j){
 	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
 	int cur = 0; 
-	int state = MID;
 	while(i>0){
 		switch(state){
 			case LOW:
@@ -184,6 +183,11 @@ void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, k
 				state = S->pointerU[i][j];
 				res_ks1->s[cur] = '-';
             	res_ks2->s[cur++] = s2->s[--j];
+				break;
+			case JUMP:
+				state = S->pointerJ[i][j];
+				res_ks1->s[cur] = '-';
+	           	res_ks2->s[cur++] = s2->s[--j];
 				break;
 			default:
 				break;
@@ -226,23 +230,32 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, junctio
 			S->pointerU[i][j] = max4(&S->U[i][j], -INFINITY, S->M[i][j-1]+GAP, S->U[i][j-1]+EXTENSION, -INFINITY);
 			// JUMP only allowed going to JUMP state at junction sites
 			if(isvalueinarray(j-1, junctions->pos, junctions->size)){
-				S->pointerJ[i][j] = max4(&S->U[i][j], -INFINITY, S->M[i][j-1]+JUMP_PENALITY, -INFINITY, S->J[i][j-1]);				
+				S->pointerJ[i][j] = max4(&S->J[i][j], -INFINITY, S->M[i][j-1]+JUMP_PENALITY, -INFINITY, S->J[i][j-1]);				
 			}else{
-				S->pointerJ[i][j] = max4(&S->U[i][j], -INFINITY, -INFINITY, -INFINITY, S->J[i][j-1]);				
+				S->pointerJ[i][j] = max4(&S->J[i][j], -INFINITY, -INFINITY, -INFINITY, S->J[i][j-1]);				
 			}
 		}
 	}
 	// find trace-back start point
 	int i_max, j_max;
 	double max_score = -INFINITY;
+	int max_state;
 	i_max = s1->l;
 	for(j=0; j<s2->l; j++){
 		if(max_score < S->M[i_max][j]){
 			max_score = S->M[i_max][j];
 			j_max = j;
+			max_state = MID;
 		}
 	}
-	//trace_back(S, s1, s2, r1, r2, i_max, j_max);	
+	for(j=0; j<s2->l; j++){
+		if(max_score < S->L[i_max][j]){
+			max_score = S->L[i_max][j];
+			j_max = j;
+			max_state = LOW;
+		}
+	}
+	trace_back(S, s1, s2, r1, r2, max_state, i_max, j_max);	
 	destory_matrix(S);
 	return max_score;
 }
@@ -250,9 +263,16 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, junctio
 /* main function. */
 int main(int argc, char *argv[]) {
 	junction_t *junctions = mycalloc(1, junction_t);
-	junctions->size = 2;
+	junctions->size = 5;
 	junctions->pos = mycalloc(junctions->size, int);
-	junctions->pos[0] = 91;  junctions->pos[1] = 559;
+	junctions->pos[0] = 90;  
+	junctions->pos[1] = 91;  
+	junctions->pos[2] = 92;  
+	junctions->pos[4] = 89;  
+	junctions->pos[5] = 558;
+	junctions->pos[6] = 559;
+	junctions->pos[7] = 560;
+	
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
