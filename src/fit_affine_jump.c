@@ -1,23 +1,41 @@
 /*--------------------------------------------------------------------*/
-/* fit_affine.c 	                                                  */
+/* fit_affine_jump.c 	                                              */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
 /* Date: 07-23-2015                                                   */
-/* Pair wise fit alignment with affine gap.                           */
+/* Pair wise fit alignment with affine gap and jump state.            */
+/* This could be used to align RNA-seq reads with intron splicing as  */
+/* jump state.                                                        */
+/*                                                                    */
+/* Parameters:                                                        */
+/*--------------------------------------------------------------------*/
+/* MATCH     =  2.0                                                   */
+/* MISMATCH  = -1.0                                                   */
+/* GAP       = -5.0                                                   */
+/* EXTENSION = -1.0                                                   */
+/* JUMP      = -10.0                                                  */
+/*                                                                    */
 /* initilize L(i,j), M(i,j), U(i,j):                                  */
-/* M(0,0) = 0                                                         */
+/*--------------------------------------------------------------------*/
+/* M(0,0) = -INF                                                      */
 /* M(i,0) = -INF               (i>0 )                                 */
 /* M(0,j) = 0                  (j>0 )                                 */
 /* L(0,j) = -INF               (j>=0)                                 */
 /* L(i,0) = -INF               (i>=0)                                 */
 /* U(i,0) = -INF               (i>0 )                                 */
 /* U(0,j) = 0                  (j>=0)                                 */
+/* J(0,j) = 0                  (j>=0)                                 */
+/* J(i,0) = -INF               (j>=0)                                 */
+/*                                                                    */
 /* reccurrance relations:                                             */
+/*--------------------------------------------------------------------*/
 /* M(i,j) = max{M(i-1, j-1)+s(x,y), U(i-1, j-1)+s(x,y),               */
-/*              L(i-1, j-1)+s(x,y)}                                   */
+/*              L(i-1, j-1)+s(x,y), J(i-1, j-1)+s(x,y)}               */
 /* U(i,j) = max{M(i-1, j)+gap, U(i-1, j)+extension}                   */
 /* L(i,j) = max{M(i, j-1)+gap, L(i, j-1)+extension}                   */
+/* J(i,j) = max{M(i-1, j)+jump, U(i-1, j)}                            */
 /* Traceback:                                                         */
+/*--------------------------------------------------------------------*/
 /* start at M(m,j_max), Stop at any of i=0 on M;                      */
 /* The rational behind this is no gap allowed to flank s1             */
 /*--------------------------------------------------------------------*/
