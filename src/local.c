@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------*/
 /* local.c                                                            */
 /* Author: Rongxin Fang                                               */
-/* E-mail: r3fang@ucsd.edu                                            */
+/* Contact: r3fang@ucsd.edu                                           */
 /* Date: 07-22-2015                                                   */
 /* Pair wise local alignment without affine gap.                      */
 /* initilize S(i,j):                                                  */
@@ -24,12 +24,13 @@
 #include "utils.h"
 #include "kseq.h"
 #include "kstring.h"
+#include "alignment.h"
 
 KSEQ_INIT(gzFile, gzread);
 
 //--------------
-#define GL_ERR_NONE 			 0
-#define GAP 					-5.0
+#define GL_ERR_NONE              0
+#define GAP                     -5.0
 
 // POINTER STATE
 #define LEFT                    100
@@ -39,6 +40,7 @@ KSEQ_INIT(gzFile, gzread);
 
 typedef enum {true, false} bool;
 
+/* DP matrix */
 typedef struct {
   unsigned int m;
   unsigned int n;
@@ -46,14 +48,9 @@ typedef struct {
   int  **pointer;
 } matrix_t;
 
-typedef struct {
-  unsigned int m;
-  double **score;
-  char* bases;
-} scoring_matrix_t;
-
-scoring_matrix_t *BLOSUM62;
-	
+/*
+ * create and initilize matrix
+ */	
 matrix_t *create_matrix(size_t m, size_t n){
 	size_t i, j; 
 	matrix_t *S = mycalloc(1, matrix_t);
@@ -87,19 +84,6 @@ char* strrev(char *s){
 	return s;
 }
 
-/* scoring */
-double match(char a, char b, scoring_matrix_t *S){
-	if(S==NULL) die("scoring: input error");
-	char *s_a, *s_b;
-	int a_i, b_i;
-	s_a = strchr (S->bases, a);
-	s_b = strchr (S->bases, b);
-	if(s_a == NULL || s_b == NULL) return -INFINITY;
-	a_i = s_a - S->bases;
-	b_i = s_b - S->bases;	
-	return S->score[a_i][b_i];
-}
-
 int destory_matrix(matrix_t *S){
 	if(S == NULL) die("destory_matrix: parameter error\n");
 	int i, j;
@@ -122,7 +106,9 @@ int max4(double *res, double a1, double a2, double a3, double a4){
 	if(a4 > *res){*res = a4; state = HOME;}
 	return state;
 }
-
+/*
+ * trace back starts from (i_max, j_max) and stops where M(i,j)=0.
+ */
 void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
 	if(S == NULL || ks1 == NULL || ks2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: parameter error");
 	int m = 0; 
@@ -150,10 +136,13 @@ void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1,
 	}
 	res_ks1->l = m;
 	res_ks2->l = m;	
+	/* reverse the string */
 	res_ks1->s = strrev(res_ks1->s);
 	res_ks2->s = strrev(res_ks2->s);
 }
-
+/*
+ * main function for alignment	
+ */
 double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("global: parameter error\n");
 	size_t m   = s1->l + 1;
@@ -180,7 +169,9 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	if(destory_matrix(S) != GL_ERR_NONE) die("smith_waterman: fail to destory matrix");
 	return max_score;
 }
-
+/*
+ * change string to upper case
+ */
 char* str_toupper(char* s){
 	char *r = mycalloc(strlen(s), char);
 	int i = 0;
@@ -219,40 +210,9 @@ void kstring_destory(kstring_t *ks){
 	free(ks);
 }
 
-/* load the scoring matrix */
-scoring_matrix_t *load_BLOSUM62(char* fname){
-	int i, j, n;
-	int *fields;
-	FILE *fp;
-	scoring_matrix_t *S = mycalloc(1, scoring_matrix_t);
-	kstring_t *buffer = mycalloc(1, kstring_t);
-	buffer->s = mycalloc(4096, char);		
-	if((fp=fopen(fname, "r")) == NULL) die("load_score_mat: %s not exists", fname);
-	getline(&(buffer->s), &(buffer->l), fp);
-	fields = ksplit(buffer, 0, &n);
-	/* initilize the S*/
-	S->m = n;
-	S->score = mycalloc(n, double*);
-	for(i=0; i<S->m; i++) S->score[i] = mycalloc(n, double);
-	S->bases = mycalloc(n, char);
-	for (j = 0; j < n; j++){S->bases[j] = *(buffer->s + fields[j]);}
-	
-	i=0;
-	while ((getline(&(buffer->s), &(buffer->l), fp)) != -1) {
-		fields = ksplit(buffer, 0, &n);
-		for (j = 0; j < n; j++){
-			S->score[i][j] = atof(buffer->s + fields[j]);			
-		}
-		i ++;
-	}
-	fclose(fp);
-   	return S;
-}
-
 /* main function. */
 int main(int argc, char *argv[]) {
 	if((BLOSUM62 = load_BLOSUM62("test/PAM250.txt")) == NULL) die("fail to load BLOSUM62 table at %s", "test/BLOSUM62.txt");
-	
 	kstring_t *ks1, *ks2;
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);

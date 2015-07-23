@@ -23,6 +23,7 @@
 #include "utils.h"
 #include "kseq.h"
 #include "kstring.h"
+#include "alignment.h"
 
 KSEQ_INIT(gzFile, gzread);
 
