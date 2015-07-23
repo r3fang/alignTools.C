@@ -13,8 +13,8 @@
 /* U(0,j) = open + extension*j (j>=0)                                 */
 /* reccurrance relations:                                             */
 /* M(i,j) = max{M(i-1, j-1), U(i-1, j-1), L(i-1, j-1)}+s(x,y)         */
-/* U(i,j) = max{M(i-1, j)+gap+extension, U(i-1, j)+extension}         */
-/* L(i,j) = max{M(i, j-1)+gap+extension, L(i, j-1)+extension}         */
+/* U(i,j) = max{M(i-1, j)+gap, U(i-1, j)+extension}                   */
+/* L(i,j) = max{M(i, j-1)+gap, L(i, j-1)+extension}                   */
 /* Traceback:                                                         */
 /* start at largest of M(m,n), L(m,n), U(m,n)                         */
 /* Stop at any of M(0,0), I(0,0), U(0,0)                              */
@@ -34,7 +34,7 @@
 
 // penality
 //--------------
-#define GAP                     -3.0
+#define GAP                     -11.0
 #define EXTENSION               -1.0
 #define MATCH                    2.0
 #define MISMATCH                -1.0
@@ -56,6 +56,9 @@ typedef struct {
   int **pointerM;
   int **pointerU;
 } matrix_t;
+
+/* store scoring matrix */
+scoring_matrix_t *BLOSUM62;
 
 /*
  * initilize matrix.	
@@ -181,21 +184,26 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	matrix_t *S = create_matrix(m, n);
 	int i, j;
 	int ind;
+	double new_score;
 	// recurrance relation
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID
-			double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			//new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
 			ind = max3(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score);
 			if(ind==1)  S->pointerM[i][j] = LOW;
 			if(ind==2)  S->pointerM[i][j] = MID;
 			if(ind==3)  S->pointerM[i][j] = UPP;
 			// LOW
-			ind = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP+EXTENSION, -INFINITY);
+			//ind = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP+EXTENSION, -INFINITY);
+			ind = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP, -INFINITY);
+			
 			if(ind==1)	S->pointerL[i][j] = LOW; // stay in state LOW
 			if(ind==2)	S->pointerL[i][j] = MID; // jump to state MID
 			// UPP
-			ind = max3(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP+EXTENSION, -INFINITY);
+			//ind = max3(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP+EXTENSION, -INFINITY);
+			ind = max3(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP, -INFINITY);
 			if(ind==1)  S->pointerU[i][j] = UPP;
 			if(ind==2)	S->pointerU[i][j] = MID;
 		}
@@ -213,6 +221,7 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 
 /* main function. */
 int main(int argc, char *argv[]) {
+	if((BLOSUM62 = load_BLOSUM62("test/BLOSUM62.txt")) == NULL) die("fail to load BLOSUM62 table at %s", "test/BLOSUM62.txt");
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
@@ -221,7 +230,6 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	kstring_read(argv[1], ks1, ks2);
-	printf("%s\n%s\n", ks1->s, ks2->s);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	kstring_t *r1 = mycalloc(1, kstring_t);
 	kstring_t *r2 = mycalloc(1, kstring_t);
