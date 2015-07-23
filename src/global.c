@@ -5,12 +5,12 @@
 /* Date: 07-22-2015                                                   */
 /* Pair wise global alignment without affine gap.                     */
 /* initilize S(i,j):                                                  */
-/* S(i, 0) = g*(i); S(0, j) = g*(j)                                   */
+/* S(i, 0) = g*i; S(0, j) = g*j                                       */
 /* reccurrance relations:                                             */
 /* S(i,j) = max{S(i-1, j-1)+s(x,y), S(i-1, j)+gap, S(i, j-1)+gap}     */
-/*               (S(i-1, j-1)+s(x,y))   # DIAGONAL                    */
-/* S(i,j) = max  (   S(i-1, j)+gap  )   # RIGHT                       */
-/*               (   S(i, j-1)+gap  )   # LEFT                        */
+/*               (S(i-1, j-1) +s(x,y))   # DIAGONAL                   */
+/* S(i,j) = max  (   S(i-1, j) + gap  )   # RIGHT                     */
+/*               (   S(i, j-1) + gap  )   # LEFT                      */
 /* Traceback:                                                         */
 /* S(m, n) holds the optimal alignment score; trace pointers back     */
 /* from S(m, n) to S(0, 0) to recover alignment.                      */
@@ -20,17 +20,15 @@
 #include <string.h>
 #include <float.h>
 #include <math.h>
-#include "utils.h"
-#include "kseq.h"
-#include "kstring.h"
-#include "alignment.h"
-
-KSEQ_INIT(gzFile, gzread);
+#include "utils.h"     // die and mycalloc
+#include "kseq.h"      // fasta parser
+#include "kstring.h"   // kstring_t type
+#include "alignment.h" // basic functions
 
 //--------------
 #define GL_ERR_NONE 			 0
-#define GAP 					-1.0
-#define MATCH 					2.0
+#define GAP 					-5.0
+#define MATCH 					 2.0
 #define MISMATCH 				-0.5
 
 // POINTER STATE
@@ -38,14 +36,15 @@ KSEQ_INIT(gzFile, gzread);
 #define DIAGONAL 				200
 #define RIGHT	 				300
 
-typedef enum {true, false} bool;
-
 typedef struct {
   unsigned int m;
   unsigned int n;
   double **score;
   int  **pointer;
 } matrix_t;
+
+/* store scoring matrix */
+scoring_matrix_t *BLOSUM62;
 
 matrix_t *create_matrix(size_t m, size_t n){
 	size_t i, j; 
@@ -63,25 +62,8 @@ matrix_t *create_matrix(size_t m, size_t n){
     }		
 	// initlize the first row and column of S
 	for(i=0; i < S->m; i++) S->score[i][0] = GAP*i;
-	for(j=0; j < S->n; j++) S->score[0][j] = GAP*j;	
-	
-	for(i=0; i < S->m; i++) S->pointer[i][0] = RIGHT;
-	for(j=0; j < S->n; j++) S->pointer[0][j] = LEFT;
-	
+	for(j=0; j < S->n; j++) S->score[0][j] = GAP*j;
 	return S;
-}
-
-char* strrev(char *s){
-	if(s == NULL) return NULL;
-	int l = strlen(s);
-	char *ss = strdup(s);
-	free(s);
-	s = mycalloc(l, char);
-	int i; for(i=0; i<l; i++){
-		s[i] = ss[l-i-1];
-	}
-	s[l] = '\0';
-	return s;
 }
 	
 int destory_matrix(matrix_t *S){
@@ -98,18 +80,18 @@ int destory_matrix(matrix_t *S){
 }
 
 int max3(double *res, double a1, double a2, double a3){
-	*res = DBL_MIN;
+	*res = -INFINITY;
 	int state;
-	if(a1 >= *res){*res = a1; state = LEFT;}
-	if(a2 >= *res){*res = a2; state = DIAGONAL;}
-	if(a3 >= *res){*res = a3; state = RIGHT;}	
+	if(a1 > *res){*res = a1; state = LEFT;}
+	if(a2 > *res){*res = a2; state = DIAGONAL;}
+	if(a3 > *res){*res = a3; state = RIGHT;}	
 	return state;
 }
 
 void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
 	if(S == NULL || ks1 == NULL || ks2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: parameter error");
 	int m = 0; 
-	while(i>0 || j >0){
+	while(i>0 && j >0){
 		switch(S->pointer[i][j]){
 			case LEFT:
 				res_ks2->s[m] = ks2->s[--j];
@@ -127,6 +109,16 @@ void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1,
 				break;	
 		}
 	}
+	if(j>0){while(j>0){
+			res_ks1->s[m] = '-';	
+			res_ks2->s[m++] = ks2->s[--j];				
+		}
+	}
+	if(i>0){while(i>0){
+			res_ks2->s[m] = '-';	
+			res_ks1->s[m++] = ks1->s[--i];				
+		}
+	}	
 	res_ks1->l = m;
 	res_ks2->l = m;	
 	res_ks1->s = strrev(res_ks1->s);
@@ -139,59 +131,24 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
 	size_t i, j, k, l;
-	
+	double new_score;
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
-	        double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
+	        //double new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
 			S->pointer[i][j] = max3(&S->score[i][j], S->score[i][j-1] + GAP, S->score[i-1][j-1] + new_score, S->score[i-1][j] + GAP);
 		}
 	}
-	// start tracing back from (m,n)
 	trace_back(S, s1, s2, r1, r2, s1->l, s2->l);
-	if(destory_matrix(S) != GL_ERR_NONE) die("smith_waterman: fail to destory matrix");
-	return S->score[s1->l][s2->l];
+	double res = S->score[s1->l][s2->l];
+	if(destory_matrix(S) != GL_ERR_NONE) die("fail to destory matrix");
+	return res;
 }
 
-char* str_toupper(char* s){
-	char *r = mycalloc(strlen(s), char);
-	int i = 0;
-	char c;
-	while(s[i])
-	{
-		r[i] = toupper(s[i]);
-		i++;
-	}
-	r[strlen(s)] = '\0';
-	return r;
-}
-
-void kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
-	gzFile fp;
-	kseq_t *seq;
-	fp = gzopen(fname, "r");
-	seq = kseq_init(fp);
-	int i, l;
-	char **tmp = mycalloc(3, char*);
-	i = 0;
-	while((l=kseq_read(seq)) >= 0){
-		if(i >= 2) die("input fasta file has more than 2 sequences");
-		tmp[i++] = str_toupper(seq->seq.s);
-	}
-	if(tmp[0] == NULL || tmp[1] == NULL) die("read_kstring: fail to read sequence");
-	(str1)->s = strdup(tmp[0]); (str1)->l = strlen((str1)->s);
-	(str2)->s = strdup(tmp[1]); (str2)->l = strlen((str2)->s);
-	for(; i >=0; i--){if(tmp[i]) free(tmp[i]);} free(tmp);
-	kseq_destroy(seq);
-	gzclose(fp);
-}
-
-void kstring_destory(kstring_t *ks){
-	free(ks->s);
-	free(ks);
-}
 
 /* main function. */
 int main(int argc, char *argv[]) {
+	if((BLOSUM62 = load_BLOSUM62("test/BLOSUM62.txt")) == NULL) die("fail to load BLOSUM62 table at %s", "test/BLOSUM62.txt");
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);

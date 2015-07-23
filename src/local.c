@@ -26,8 +26,6 @@
 #include "kstring.h"
 #include "alignment.h"
 
-KSEQ_INIT(gzFile, gzread);
-
 //--------------
 #define GL_ERR_NONE              0
 #define GAP                     -5.0
@@ -47,6 +45,9 @@ typedef struct {
   double **score;
   int  **pointer;
 } matrix_t;
+
+/* store scoring matrix */
+scoring_matrix_t *BLOSUM62;
 
 /*
  * create and initilize matrix
@@ -69,19 +70,6 @@ matrix_t *create_matrix(size_t m, size_t n){
 	for(i=0; i < S->m; i++) S->score[i][0] = 0.0;
 	for(j=0; j < S->n; j++) S->score[0][j] = 0.0;
 	return S;
-}
-
-char* strrev(char *s){
-	if(s == NULL) return NULL;
-	int l = strlen(s);
-	char *ss = strdup(s);
-	free(s);
-	s = mycalloc(l, char);
-	int i; for(i=0; i<l; i++){
-		s[i] = ss[l-i-1];
-	}
-	s[l] = '\0';
-	return s;
 }
 
 int destory_matrix(matrix_t *S){
@@ -168,46 +156,6 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	trace_back(S, s1, s2, r1, r2, i_max, j_max);
 	if(destory_matrix(S) != GL_ERR_NONE) die("smith_waterman: fail to destory matrix");
 	return max_score;
-}
-/*
- * change string to upper case
- */
-char* str_toupper(char* s){
-	char *r = mycalloc(strlen(s), char);
-	int i = 0;
-	char c;
-	while(s[i])
-	{
-		r[i] = toupper(s[i]);
-		i++;
-	}
-	r[strlen(s)] = '\0';
-	return r;
-}
-
-void kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
-	gzFile fp;
-	kseq_t *seq;
-	fp = gzopen(fname, "r");
-	seq = kseq_init(fp);
-	int i, l;
-	char **tmp = mycalloc(3, char*);
-	i = 0;
-	while((l=kseq_read(seq)) >= 0){
-		if(i >= 2) die("input fasta file has more than 2 sequences");
-		tmp[i++] = str_toupper(seq->seq.s);
-	}
-	if(tmp[0] == NULL || tmp[1] == NULL) die("read_kstring: fail to read sequence");
-	(str1)->s = strdup(tmp[0]); (str1)->l = strlen((str1)->s);
-	(str2)->s = strdup(tmp[1]); (str2)->l = strlen((str2)->s);
-	for(; i >=0; i--){if(tmp[i]) free(tmp[i]);} free(tmp);
-	kseq_destroy(seq);
-	gzclose(fp);
-}
-
-void kstring_destory(kstring_t *ks){
-	free(ks->s);
-	free(ks);
 }
 
 /* main function. */

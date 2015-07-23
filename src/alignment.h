@@ -14,15 +14,14 @@
 #include "utils.h"
 #include "kseq.h"
 #include "kstring.h"
+KSEQ_INIT(gzFile, gzread);
+
 
 typedef struct {
   unsigned int m;
   double **score;
   char* bases;
 } scoring_matrix_t;
-
-/* store scoring matrix */
-scoring_matrix_t *BLOSUM62;
 
 /* scoring */
 static inline double 
@@ -71,4 +70,64 @@ static inline scoring_matrix_t
 	}
 	fclose(fp);
    	return S;
+}
+
+static inline char 
+*strrev(char *s){
+	if(s == NULL) return NULL;
+	int l = strlen(s);
+	char *ss = strdup(s);
+	free(s);
+	s = mycalloc(l, char);
+	int i; for(i=0; i<l; i++){
+		s[i] = ss[l-i-1];
+	}
+	s[l] = '\0';
+	return s;
+}
+
+/*
+ * change string to upper case
+ */
+static inline char 
+*str_toupper(char* s){
+	char *r = mycalloc(strlen(s), char);
+	int i = 0;
+	char c;
+	while(s[i])
+	{
+		r[i] = toupper(s[i]);
+		i++;
+	}
+	r[strlen(s)] = '\0';
+	return r;
+}
+/*
+ * destory kstring
+ */
+static inline void 
+kstring_destory(kstring_t *ks){
+	free(ks->s);
+	free(ks);
+}
+
+static inline void 
+kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
+	gzFile fp;
+	kseq_t *seq;
+	fp = gzopen(fname, "r");
+	seq = kseq_init(fp);
+	int i, l;
+	char **tmp = mycalloc(3, char*);
+	i = 0;
+	while((l=kseq_read(seq)) >= 0){
+		if(i >= 2) die("input fasta file has more than 2 sequences");
+		tmp[i++] = str_toupper(seq->seq.s);
+	}
+	if(tmp[0] == NULL || tmp[1] == NULL) die("read_kstring: fail to read sequence");
+	(str1)->s = strdup(tmp[0]); (str1)->l = strlen((str1)->s);
+	(str2)->s = strdup(tmp[1]); (str2)->l = strlen((str2)->s);
+	for(; i >=0; i--){if(tmp[i]) free(tmp[i]);} free(tmp);
+	kseq_destroy(seq);
+	gzclose(fp);
 }
