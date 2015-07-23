@@ -88,7 +88,7 @@ matrix_t *create_matrix(size_t m, size_t n){
 	for(i=0; i<S->m; i++){
 		S->M[i][0] = -INFINITY;
 		S->U[i][0] = -INFINITY;
-		S->U[i][0] = -INFINITY;
+		S->L[i][0] = -INFINITY;
 	}
 	// initlize first row
 	for(j=0; j<S->n; j++){

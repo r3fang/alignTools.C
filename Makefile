@@ -7,6 +7,6 @@ all:src/global_affine.c src/fit.c src/global.c src/local.c src/local_affine.c sr
 		$(CC) -g -O2 src/fit.c src/utils.c src/kstring.c -o bin/fit -lz
 		$(CC) -g -O2 src/overlap.c src/utils.c src/kstring.c -o bin/overlap -lz
 		$(CC) -g -O2 src/fit_affine.c src/utils.c src/kstring.c -o bin/fit_affine -lz
-		
+		$(CC) -g -O2 src/fit_affine_jump.c src/utils.c src/kstring.c -o bin/fit_affine_jump -lz		
 clean:
 		rm -f bin/*.dSYM
