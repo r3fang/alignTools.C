@@ -127,11 +127,11 @@ int destory_matrix(matrix_t *S){
 
 int max3(double *res, double a1, double a2, double a3){
 	*res = -INFINITY;
-	int ind;
-	if(a1 > *res){*res = a1; ind = 1;}
-	if(a2 > *res){*res = a2; ind = 2;}
-	if(a3 > *res){*res = a3; ind = 3;}
-	return ind;
+	int state;
+	if(a1 > *res){*res = a1; state = LOW;}
+	if(a2 > *res){*res = a2; state = MID;}
+	if(a3 > *res){*res = a3; state = UPP;}
+	return state;
 }
 
 void trace_back(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state){
@@ -183,7 +183,6 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
 	int i, j;
-	int ind;
 	double new_score;
 	// recurrance relation
 	for(i=1; i<=s1->l; i++){
@@ -191,29 +190,15 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 			// MID
 			//new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
 			new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
-			ind = max3(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score);
-			if(ind==1)  S->pointerM[i][j] = LOW;
-			if(ind==2)  S->pointerM[i][j] = MID;
-			if(ind==3)  S->pointerM[i][j] = UPP;
+			S->pointerM[i][j] = max3(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score);
 			// LOW
-			//ind = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP+EXTENSION, -INFINITY);
-			ind = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP, -INFINITY);
-			
-			if(ind==1)	S->pointerL[i][j] = LOW; // stay in state LOW
-			if(ind==2)	S->pointerL[i][j] = MID; // jump to state MID
+			S->pointerL[i][j] = max3(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP, -INFINITY);
 			// UPP
-			//ind = max3(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP+EXTENSION, -INFINITY);
-			ind = max3(&S->U[i][j], S->U[i][j-1]+EXTENSION, S->M[i][j-1]+GAP, -INFINITY);
-			if(ind==1)  S->pointerU[i][j] = UPP;
-			if(ind==2)	S->pointerU[i][j] = MID;
+			S->pointerU[i][j] = max3(&S->U[i][j], -INFINITY, S->M[i][j-1]+GAP, S->U[i][j-1]+EXTENSION);
 		}
 	}
 	double max_score;
-	int max_state;
-	ind = max3(&max_score, S->L[s1->l][s2->l], S->M[s1->l][s2->l], S->U[s1->l][s2->l]);
-	if(ind == 1) max_state = LOW;
-	if(ind == 2) max_state = MID;
-	if(ind == 3) max_state = UPP;
+	int max_state = max3(&max_score, S->L[s1->l][s2->l], S->M[s1->l][s2->l], S->U[s1->l][s2->l]);
 	trace_back(S, s1, s2, r1, r2, max_state);	
 	destory_matrix(S);
 	return max_score;
