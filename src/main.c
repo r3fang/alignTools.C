@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "global.h"
 #include "global_affine.h"
+#include "alignment.h"
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.7.23-r15"

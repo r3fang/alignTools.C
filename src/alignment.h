@@ -5,6 +5,8 @@
 /* Date: 07-22-2015                                                   */
 /* Basic functions/variables commonly used.                           */
 /*--------------------------------------------------------------------*/
+#ifndef _ALIGNMENT_
+#define _ALIGNMENT_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,3 +229,4 @@ kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
 	kseq_destroy(seq);
 	gzclose(fp);
 }
+#endif

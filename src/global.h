@@ -15,6 +15,8 @@
 /* S(m, n) holds the optimal alignment score; trace pointers back     */
 /* from S(m, n) to S(0, 0) to recover alignment.                      */
 /*--------------------------------------------------------------------*/
+#ifndef _GLOBAL_
+#define _GLOBAL_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,3 +117,4 @@ main_global(int argc, char *argv[]) {
 	kstring_destory(r2);
 	return 0;
 }
+#endif

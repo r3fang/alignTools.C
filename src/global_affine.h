@@ -19,6 +19,9 @@
 /* start at largest of M(m,n), L(m,n), U(m,n)                         */
 /* Stop at any of M(0,0), I(0,0), U(0,0)                              */
 /*--------------------------------------------------------------------*/
+#ifndef _GLOBAL_AFFINE_
+#define _GLOBAL_AFFINE_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +30,7 @@
 #include "utils.h"
 #include "kseq.h"
 #include "kstring.h"
-//#include "alignment.h"
+#include "alignment.h"
 
 static inline void 
 trace_back_gla(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state){
@@ -152,3 +155,4 @@ main_global_affine(int argc, char *argv[]) {
 	kstring_destory(r2);
 	return 0;
 }
+#endif
