@@ -1,4 +1,5 @@
 all:src/global_affine.c src/fit.c src/global.c src/local.c src/local_affine.c src/utils.c src/utils.h src/kseq.h src/kstring.c src/kstring.h
+		$(CC) -g -O2 src/main.c src/utils.c src/kstring.c -o bin/alignTools -lz
 		$(CC) -g -O2 src/global_affine.c src/utils.c src/kstring.c -o bin/global_affine -lz
 		$(CC) -g -O2 src/local.c src/utils.c src/kstring.c -o bin/local -lz
 		$(CC) -g -O2 src/global.c src/utils.c src/kstring.c -o bin/global -lz
