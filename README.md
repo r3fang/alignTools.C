@@ -21,8 +21,22 @@ Install from github:
 $ git clone git@github.com:r3fang/alignTools.git
 $ cd AlignTools
 $ make
-$ ./bin/global test/test.fa
-$ ./bin/fit_affine_jump test/test_fit_affine_jump.fa 
+$ ./bin/alignTools 
+Program: alignTools (pairwise DNA sequence alignment)
+Version: 0.7.23-r15
+Contact: Rongxin Fang <r3fang@ucsd.edu>
+
+Usage:   alignTools <command> [options]
+
+Command: gl         classic global alingment (needle)
+         gla        global alignment with affine gap
+         sw         classic smith-waterman alignment
+         swa        smith-waterman with affine gap
+         fit        fitting alignment
+         fita       fitting alignment with affine gap
+         fitaj      fitting alingment with affine gap plus jump state
+         ov         overlap alignment
+         ed         count edit distance
 ```
 
 ### Author
