@@ -1,3 +1,21 @@
+/*--------------------------------------------------------------------*/
+/* global.h 		                                                  */
+/* Author: Rongxin Fang                                               */
+/* E-mail: r3fang@ucsd.edu                                            */
+/* Date: 07-22-2015                                                   */
+/* Pair wise global alignment without affine gap.                     */
+/* initilize S(i,j):                                                  */
+/* S(i, 0) = g*i; S(0, j) = g*j                                       */
+/* reccurrance relations:                                             */
+/* S(i,j) = max{S(i-1, j-1)+s(x,y), S(i-1, j)+gap, S(i, j-1)+gap}     */
+/*               (S(i-1, j-1) +s(x,y))   # DIAGONAL                   */
+/* S(i,j) = max  (   S(i-1, j) + gap  )   # RIGHT                     */
+/*               (   S(i, j-1) + gap  )   # LEFT                      */
+/* Traceback:                                                         */
+/* S(m, n) holds the optimal alignment score; trace pointers back     */
+/* from S(m, n) to S(0, 0) to recover alignment.                      */
+/*--------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,20 +26,8 @@
 #include "kstring.h"   // kstring_t type
 #include "alignment.h" // basic functions
 
-static inline int 
-max5(double *res, double a1, double a2, double a3, double a4, double a5){
-	*res = -INFINITY;
-	int state;
-	if(a1 > *res){*res = a1; state = 0;}
-	if(a2 > *res){*res = a2; state = 1;}
-	if(a3 > *res){*res = a3; state = 2;}	
-	if(a4 > *res){*res = a4; state = 3;}	
-	if(a5 > *res){*res = a5; state = 4;}	
-	return state;
-}
-
 static inline void 
-trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
+trace_back_gl(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
 	if(S == NULL || ks1 == NULL || ks2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: parameter error");
 	int m = 0; 
 	while(i>0 && j >0){
@@ -59,7 +65,7 @@ trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstr
 }
 
 static inline double 
-align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
+align_gl(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("global: parameter error\n");
 	size_t m   = s1->l + 1;
 	size_t n   = s2->l + 1;
@@ -79,12 +85,11 @@ align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 			if(idx==2) S->pointerM[i][j] = RIGHT;
 		}
 	}
-	trace_back(S, s1, s2, r1, r2, s1->l, s2->l);
+	trace_back_gl(S, s1, s2, r1, r2, s1->l, s2->l);
 	double res = S->M[s1->l][s2->l];
 	destory_matrix(S);
 	return res;
 }
-
 
 /* main function. */
 static inline int 
@@ -102,7 +107,7 @@ main_global(int argc, char *argv[]) {
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("score=%f\n", align(ks1, ks2, r1, r2));
+	printf("score=%f\n", align_gl(ks1, ks2, r1, r2));
 	printf("%s\n%s\n", r1->s, r2->s);
 	kstring_destory(ks1);
 	kstring_destory(ks2);

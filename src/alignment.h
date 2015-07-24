@@ -1,19 +1,9 @@
 /*--------------------------------------------------------------------*/
-/* global.c 		                                                  */
+/* alignment.h 		                                                  */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
 /* Date: 07-22-2015                                                   */
-/* Pair wise global alignment without affine gap.                     */
-/* initilize S(i,j):                                                  */
-/* S(i, 0) = g*i; S(0, j) = g*j                                       */
-/* reccurrance relations:                                             */
-/* S(i,j) = max{S(i-1, j-1)+s(x,y), S(i-1, j)+gap, S(i, j-1)+gap}     */
-/*               (S(i-1, j-1) +s(x,y))   # DIAGONAL                   */
-/* S(i,j) = max  (   S(i-1, j) + gap  )   # RIGHT                     */
-/*               (   S(i, j-1) + gap  )   # LEFT                      */
-/* Traceback:                                                         */
-/* S(m, n) holds the optimal alignment score; trace pointers back     */
-/* from S(m, n) to S(0, 0) to recover alignment.                      */
+/* Basic functions/variables commonly used.                           */
 /*--------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -29,13 +19,17 @@ KSEQ_INIT(gzFile, gzread);
 #define GAP 					-3.0
 #define MATCH 					 2.0
 #define MISMATCH 				-0.5
+#define EXTENSION               -1.0
 
 // POINTER STATE
 #define LEFT 					100
 #define DIAGONAL 				200
 #define RIGHT	 				300
 #define HOME                    400
-#define JUMP                    500
+#define LOW                     500
+#define MID                     600
+#define UPP                     700
+#define JUMP                    800
 
 typedef struct {
   unsigned int m;
@@ -56,6 +50,18 @@ typedef struct {
   char* bases;
 } scoring_matrix_t;
 
+/* max of fix values */
+static inline int 
+max5(double *res, double a1, double a2, double a3, double a4, double a5){
+	*res = -INFINITY;
+	int state;
+	if(a1 > *res){*res = a1; state = 0;}
+	if(a2 > *res){*res = a2; state = 1;}
+	if(a3 > *res){*res = a3; state = 2;}	
+	if(a4 > *res){*res = a4; state = 3;}	
+	if(a5 > *res){*res = a5; state = 4;}	
+	return state;
+}
 
 /* scoring */
 static inline double 
@@ -70,6 +76,7 @@ match(char a, char b, scoring_matrix_t *S){
 	b_i = s_b - S->bases;	
 	return S->score[a_i][b_i];
 }
+
 /*
  * create matrix, allocate memor
  */
