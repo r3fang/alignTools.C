@@ -18,10 +18,13 @@
 #include "kstring.h"
 KSEQ_INIT(gzFile, gzread);
 
+typedef enum { true, false } bool;
+
 #define GAP 					-3.0
 #define MATCH 					 2.0
 #define MISMATCH 				-0.5
 #define EXTENSION               -1.0
+#define JUMP_PENALITY           -10.0
 
 // POINTER STATE
 #define LEFT 					100
@@ -228,5 +231,16 @@ kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
 	for(; i >=0; i--){if(tmp[i]) free(tmp[i]);} free(tmp);
 	kseq_destroy(seq);
 	gzclose(fp);
+}
+
+
+static inline bool 
+isvalueinarray(int val, int *arr, int size){
+    int i;
+    for (i=0; i < size; i++) {
+        if (arr[i] == val)
+            return TRUE;
+    }
+    return FALSE;
 }
 #endif

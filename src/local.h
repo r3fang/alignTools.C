@@ -69,8 +69,11 @@ align_local(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("global: parameter error\n");
 	size_t m   = s1->l + 1;
 	size_t n   = s2->l + 1;
+	size_t i, j;
 	matrix_t *S = create_matrix(m, n);
-	size_t i, j, k, l;
+	for(;i<S->m; i++) S->M[i][0] = 0.0;
+	for(;j<S->n; j++) S->M[0][j] = 0.0;
+	
 	double max_score = -INFINITY;
 	int i_max, j_max;
 	int idx;
