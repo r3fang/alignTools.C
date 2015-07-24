@@ -96,6 +96,7 @@ align_gl(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 /* main function. */
 static inline int 
 main_global(int argc, char *argv[]) {
+	opt_t *opt = NULL;
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
@@ -103,7 +104,7 @@ main_global(int argc, char *argv[]) {
 		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
 		return 1;
 	}
-	kstring_read(argv[1], ks1, ks2);
+	kstring_read(argv[1], ks1, ks2, opt);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	kstring_t *r1 = mycalloc(1, kstring_t);
 	kstring_t *r2 = mycalloc(1, kstring_t);

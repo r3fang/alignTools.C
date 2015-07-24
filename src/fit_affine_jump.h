@@ -48,17 +48,10 @@
 #include <string.h>
 #include <float.h>
 #include <math.h>
-#include <stdbool.h>
 #include "utils.h"
 #include "kseq.h"
 #include "kstring.h"
 #include "alignment.h"
-
-//junctions
-typedef struct {
-	size_t size;
-	int *pos;
-} junction_t;
 
 static inline void 
 trace_back_fit_affine_jump(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state, int i, int j){
@@ -182,37 +175,51 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 /* main function. */
 static inline int 
 main_fit_affine_jump(int argc, char *argv[]) {
-	junction_t *junctions = mycalloc(1, junction_t);
-	junctions->size = 5;
-	junctions->pos = mycalloc(junctions->size, int);
-	junctions->pos[0] = 90;  
-	junctions->pos[1] = 91;  
-	junctions->pos[2] = 92;  
-	junctions->pos[4] = 89;  
-	junctions->pos[5] = 558;
-	junctions->pos[6] = 559;
-	junctions->pos[7] = 560;
-	
+	opt_t *opt = init_opt(); // initlize options with default settings
+	int c, i, n, *fields;
+	kstring_t *junction_sites = mycalloc(1, kstring_t);
+	srand48(11);
+	while ((c = getopt(argc, argv, "m:u:o:e:j:s")) >= 0) {
+			switch (c) {
+			case 'm': opt->m = atoi(optarg); break;
+			case 'u': opt->u = atoi(optarg); break;
+			case 'o': opt->o = atoi(optarg); break;
+			case 'e': opt->e = atoi(optarg); break;
+			case 'j': opt->j = atoi(optarg); break;
+			case 's': opt->s = true; break;
+			default: return 1;
+		}
+	}
+	if (optind + 1 > argc) {
+		fprintf(stderr, "\n");
+				fprintf(stderr, "Usage:   alignTools fitaj [options] <target.fa>\n\n");
+				fprintf(stderr, "Options: -m INT   score for a match [%d]\n", opt->m);
+				fprintf(stderr, "         -u INT   mismatch penalty [%d]\n", opt->u);
+				fprintf(stderr, "         -o INT   gap open penalty [%d]\n", opt->o);
+				fprintf(stderr, "         -e INT   gap extension penalty [%d]\n", opt->e);
+				fprintf(stderr, "         -j INT   jump penality [%d]\n", opt->j);
+				fprintf(stderr, "         -s       weather jump state include\n");
+				fprintf(stderr, "\n");
+	}
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
-		return 1;
-	}
-	kstring_read(argv[1], ks1, ks2);
-	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
-	if(ks1->l > ks2->l) die("first sequence must be shorter than the second\n");
-	kstring_t *r1 = mycalloc(1, kstring_t);
-	kstring_t *r2 = mycalloc(1, kstring_t);
-	r1->s = mycalloc(ks1->l + ks2->l, char);
-	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("score=%f\n", align_fit_affine_jump(ks1, ks2, r1, r2, junctions));
-	printf("%s\n%s\n", r1->s, r2->s);
-	kstring_destory(ks1);
-	kstring_destory(ks2);
-	kstring_destory(r1);
-	kstring_destory(r2);
+	printf("%s\n", argv[argc-1]);
+	kstring_read(argv[argc-1], ks1, ks2, opt);
+	//if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
+	//if(ks1->l > ks2->l) die("first sequence must be shorter than the second\n");
+	//kstring_t *r1 = mycalloc(1, kstring_t);
+	//kstring_t *r2 = mycalloc(1, kstring_t);
+	//r1->s = mycalloc(ks1->l + ks2->l, char);
+	//r2->s = mycalloc(ks1->l + ks2->l, char);
+	//printf("score=%f\n", align_fit_affine_jump(ks1, ks2, r1, r2, junctions));
+	//printf("%s\n%s\n", r1->s, r2->s);
+	//kstring_destory(ks1);
+	//kstring_destory(ks2);
+	//kstring_destory(r1);
+	//kstring_destory(r2);
+	free(opt);
+	kstring_destory(junction_sites);
 	return 0;
 }
 #endif

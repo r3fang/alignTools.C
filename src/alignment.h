@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <float.h>
 #include <math.h>
 #include "utils.h"
@@ -54,6 +55,36 @@ typedef struct {
   double **score;
   char* bases;
 } scoring_matrix_t;
+
+//for alignment allows jump state with junctions
+typedef struct {
+	size_t size;
+	int *pos;
+} junction_t;
+
+//opt
+typedef struct {
+	int o; // gap open
+	int e; // gap extension
+	int m; // match
+	int u; // unmatch
+	int j; // jump penality
+	bool s;
+	junction_t *sites;
+} opt_t;
+
+static inline opt_t 
+*init_opt(){
+	opt_t *opt = mycalloc(1, opt_t);
+	opt->o = -5.0;
+	opt->e = -1.0;
+	opt->m =  1.0;
+	opt->u = -2.0;
+	opt->j = -10.0;
+	opt->s = false;
+	opt->sites = mycalloc(1, junction_t);	
+	return opt;
+}
 
 /* max of fix values */
 static inline int 
@@ -213,22 +244,37 @@ kstring_destory(kstring_t *ks){
 }
 
 static inline void 
-kstring_read(char* fname, kstring_t *str1, kstring_t *str2){
+kstring_read(char* fname, kstring_t *str1, kstring_t *str2, opt_t *opt){
+	int i, l;		
 	gzFile fp;
 	kseq_t *seq;
 	fp = gzopen(fname, "r");
 	seq = kseq_init(fp);
-	int i, l;
-	char **tmp = mycalloc(3, char*);
+	char **tmp_seq = mycalloc(3, char*);
+	char **tmp_comment = mycalloc(3, char*);
+	
+	//char **tmp_comments = mycalloc(3, char*);
 	i = 0;
 	while((l=kseq_read(seq)) >= 0){
 		if(i >= 2) die("input fasta file has more than 2 sequences");
-		tmp[i++] = str_toupper(seq->seq.s);
+		tmp_seq[i] = str_toupper(seq->seq.s);
+		if(seq->comment.s) tmp_comment[i] = strdup(seq->comment.s);
+		i++;
 	}
-	if(tmp[0] == NULL || tmp[1] == NULL) die("read_kstring: fail to read sequence");
-	(str1)->s = strdup(tmp[0]); (str1)->l = strlen((str1)->s);
-	(str2)->s = strdup(tmp[1]); (str2)->l = strlen((str2)->s);
-	for(; i >=0; i--){if(tmp[i]) free(tmp[i]);} free(tmp);
+	if(tmp_seq[0] == NULL || tmp_seq[1] == NULL) die("read_kstring: fail to read sequence");
+	(str1)->s = strdup(tmp_seq[0]); (str1)->l = strlen((str1)->s);
+	(str2)->s = strdup(tmp_seq[1]); (str2)->l = strlen((str2)->s);
+	if(opt != NULL && opt->s){
+		if(tmp_comment[1] == NULL) die("fail to read junction sites");
+		kstring_t *tmp = mycalloc(1, kstring_t);
+		tmp->s = strdup(tmp_comment[1]);
+		tmp->l = strlen(tmp->s);
+		int *fields, i, n;
+	}
+	for(; i >=0; i--){
+		if(tmp_seq[i]) free(tmp_seq[i]);		
+	} 
+	free(tmp_seq);
 	kseq_destroy(seq);
 	gzclose(fp);
 }
