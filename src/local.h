@@ -29,7 +29,8 @@
 #include "kstring.h"
 #include "alignment.h"
 
-void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
+static inline void 
+trace_back_local(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
 	if(S == NULL || ks1 == NULL || ks2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: parameter error");
 	int m = 0; 
 	while(S->M[i][j] != 0){
@@ -63,7 +64,8 @@ void trace_back(matrix_t *S, kstring_t *ks1, kstring_t *ks2, kstring_t *res_ks1,
 /*
  * main function for alignment	
  */
-double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
+static inline double 
+align_local(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("global: parameter error\n");
 	size_t m   = s1->l + 1;
 	size_t n   = s2->l + 1;
@@ -88,13 +90,14 @@ double align(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	}
 	// find max value of S->score, can be anywhere in matrix
 	// stop when we get a cell with 0
-	trace_back(S, s1, s2, r1, r2, i_max, j_max);
+	trace_back_local(S, s1, s2, r1, r2, i_max, j_max);
 	destory_matrix(S);
 	return max_score;
 }
 
 /* main function. */
-int main_local(int argc, char *argv[]) {
+static inline int
+main_local(int argc, char *argv[]) {
 	kstring_t *ks1, *ks2;
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
@@ -108,7 +111,7 @@ int main_local(int argc, char *argv[]) {
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("%f\n", align(ks1, ks2, r1, r2));
+	printf("%f\n", align_local(ks1, ks2, r1, r2));
 	printf("%s\n%s\n", r1->s, r2->s);
 	kstring_destory(ks1);
 	kstring_destory(ks2);
