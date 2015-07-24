@@ -1,9 +1,19 @@
 /*--------------------------------------------------------------------*/
-/* alignment.h 		                                                  */
+/* global.c 		                                                  */
 /* Author: Rongxin Fang                                               */
 /* E-mail: r3fang@ucsd.edu                                            */
 /* Date: 07-22-2015                                                   */
-/* Basic functions/variables commonly used.                           */
+/* Pair wise global alignment without affine gap.                     */
+/* initilize S(i,j):                                                  */
+/* S(i, 0) = g*i; S(0, j) = g*j                                       */
+/* reccurrance relations:                                             */
+/* S(i,j) = max{S(i-1, j-1)+s(x,y), S(i-1, j)+gap, S(i, j-1)+gap}     */
+/*               (S(i-1, j-1) +s(x,y))   # DIAGONAL                   */
+/* S(i,j) = max  (   S(i-1, j) + gap  )   # RIGHT                     */
+/*               (   S(i, j-1) + gap  )   # LEFT                      */
+/* Traceback:                                                         */
+/* S(m, n) holds the optimal alignment score; trace pointers back     */
+/* from S(m, n) to S(0, 0) to recover alignment.                      */
 /*--------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -16,11 +26,36 @@
 #include "kstring.h"
 KSEQ_INIT(gzFile, gzread);
 
+#define GAP 					-3.0
+#define MATCH 					 2.0
+#define MISMATCH 				-0.5
+
+// POINTER STATE
+#define LEFT 					100
+#define DIAGONAL 				200
+#define RIGHT	 				300
+#define HOME                    400
+#define JUMP                    500
+
+typedef struct {
+  unsigned int m;
+  unsigned int n;
+  double **L;
+  double **M;
+  double **U;
+  double **J;
+  int  **pointerL;
+  int  **pointerM;
+  int  **pointerU;
+  int  **pointerJ;
+} matrix_t;
+
 typedef struct {
   unsigned int m;
   double **score;
   char* bases;
 } scoring_matrix_t;
+
 
 /* scoring */
 static inline double 
@@ -34,6 +69,61 @@ match(char a, char b, scoring_matrix_t *S){
 	a_i = s_a - S->bases;
 	b_i = s_b - S->bases;	
 	return S->score[a_i][b_i];
+}
+/*
+ * create matrix, allocate memor
+ */
+static inline matrix_t 
+*create_matrix(size_t m, size_t n){
+	size_t i, j; 
+	matrix_t *S = mycalloc(1, matrix_t);
+	S->m = m;
+	S->n = n;
+	S->L = mycalloc(m, double*);
+	S->M = mycalloc(m, double*);
+	S->U = mycalloc(m, double*);
+	S->J = mycalloc(m, double*);
+	
+	for (i = 0; i < m; i++) {
+      S->M[i] = mycalloc(n, double);
+      S->L[i] = mycalloc(n, double);
+      S->U[i] = mycalloc(n, double);
+      S->J[i] = mycalloc(n, double);
+    }	
+	
+	S->pointerM = mycalloc(m, int*);
+	S->pointerU = mycalloc(m, int*);
+	S->pointerL = mycalloc(m, int*);
+	S->pointerJ = mycalloc(m, int*);
+	for (i = 0; i < m; i++) {
+       	S->pointerU[i] = mycalloc(n, int);
+        S->pointerM[i] = mycalloc(n, int);
+        S->pointerL[i] = mycalloc(n, int);
+		S->pointerJ[i] = mycalloc(n, int);
+    }
+	return S;
+}
+
+/*
+ * destory matrix
+ */
+static inline void 
+destory_matrix(matrix_t *S){
+	if(S == NULL) die("destory_matrix: parameter error\n");
+	int i;
+	for(i = 0; i < S->m; i++){
+		if(S->L[i]) free(S->L[i]);
+		if(S->M[i]) free(S->M[i]);
+		if(S->U[i]) free(S->U[i]);
+		if(S->J[i]) free(S->J[i]);
+	}
+	for(i = 0; i < S->m; i++){
+		if(S->pointerL[i]) free(S->pointerL[i]);
+		if(S->pointerM[i]) free(S->pointerM[i]);
+		if(S->pointerU[i]) free(S->pointerU[i]);
+		if(S->pointerJ[i]) free(S->pointerJ[i]);
+	}
+	free(S);
 }
 
 

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "kstring.h"
 #include "utils.h"
+#include "global.h"
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.7.23-r15"
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
 	for (i = 1; i < argc; ++i) ksprintf(&pg, " %s", argv[i]);
 	//bwa_pg = pg.s;
 	if (argc < 2) return usage();
-	//if (strcmp(argv[1], "gl") == 0) ret = main_global(argc-1, argv+1);
+	if (strcmp(argv[1], "gl") == 0) ret = main_global(argc-1, argv+1);
 	//else if (strcmp(argv[1], "gla") == 0) ret = main_global_affine(argc-1, argv+1);
 	//else if (strcmp(argv[1], "sw") == 0) ret = main_local(argc-1, argv+1);
 	//else if (strcmp(argv[1], "swa") == 0) ret = main_local_affine(argc-1, argv+1);
