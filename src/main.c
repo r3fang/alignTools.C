@@ -47,19 +47,19 @@ int main(int argc, char *argv[])
 	for (i = 1; i < argc; ++i) ksprintf(&pg, " %s", argv[i]);
 	//bwa_pg = pg.s;
 	if (argc < 2) return usage();
-	if (strcmp(argv[1], "gl") == 0) ret = main_global(argc-1, argv+1);
-	else if (strcmp(argv[1], "gla") == 0) ret = main_global_affine(argc-1, argv+1);
-	else if (strcmp(argv[1], "sw") == 0) ret = main_local(argc-1, argv+1);
-	else if (strcmp(argv[1], "swa") == 0) ret = main_local_affine(argc-1, argv+1);
-	else if (strcmp(argv[1], "fit") == 0) ret = main_fit(argc-1, argv+1);
-	else if (strcmp(argv[1], "fita") == 0) ret = main_fit_affine(argc-1, argv+1);
-	else if (strcmp(argv[1], "fitaj") == 0) ret = main_fit_affine_jump(argc-1, argv+1);
-	else if (strcmp(argv[1], "ov") == 0) ret = main_overlap(argc-1, argv+1);
-	else if (strcmp(argv[1], "ed") == 0) ret = main_edit_dist(argc-1, argv+1);
-	else {
-		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
-		return 1;
-	}
+	//if (strcmp(argv[1], "gl") == 0) ret = main_global(argc-1, argv+1);
+	//else if (strcmp(argv[1], "gla") == 0) ret = main_global_affine(argc-1, argv+1);
+	//else if (strcmp(argv[1], "sw") == 0) ret = main_local(argc-1, argv+1);
+	//else if (strcmp(argv[1], "swa") == 0) ret = main_local_affine(argc-1, argv+1);
+	//else if (strcmp(argv[1], "fit") == 0) ret = main_fit(argc-1, argv+1);
+	//else if (strcmp(argv[1], "fita") == 0) ret = main_fit_affine(argc-1, argv+1);
+	//else if (strcmp(argv[1], "fitaj") == 0) ret = main_fit_affine_jump(argc-1, argv+1);
+	//else if (strcmp(argv[1], "ov") == 0) ret = main_overlap(argc-1, argv+1);
+	//else if (strcmp(argv[1], "ed") == 0) ret = main_edit_dist(argc-1, argv+1);
+	//else {
+	//	fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
+	//	return 1;
+	//}
 	//err_fflush(stdout);
 	//err_fclose(stdout);
 	//if (ret == 0) {
