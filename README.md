@@ -4,12 +4,12 @@ AlignTools is a collection of C-implemented pairwise DNA sequence alignment tool
 
   - needle (global alignment) 
   - smith-waterman (local alingment)
-  - global/local alignment with affine gap
-  - fitting alignment
-  - fitting alingment with affine gap
-  - fitting alignment with affine gap and jump state
+  - global/local alignment allows affine gap
+  - edit distance
+  - overlap alignment
+  - fitting alignment allows affine gap plus jump state
 
-More features may be added in the near future.
+More features will be added in the near future.
 ### Version
 1.0.1
 
@@ -36,10 +36,10 @@ Command: gl         classic global alingment (needle)
          ov         overlap alignment
          ed         count edit distance
 ```
-Running fitting alignment
+fitting alignment example:
 ```
 $ ./bin/alignTools fit 
-Usage:   alignTools fitaj [options] <target.fa>
+Usage:   alignTools fit [options] <target.fa>
 
 Options: -m INT   score for a match [1]
          -u INT   mismatch penalty [-2]
@@ -49,6 +49,9 @@ Options: -m INT   score for a match [1]
          -s       weather jump state included
 
 $./bin/alignTools fit -m 2 -u -2 -s test/test_fit_affine_jump.fa
+score=172.000000
+AAACGCCAGACATA----GAACTAAATTCGCCCCCGAGCAACC------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------GAGACTASFSADFTCAGTCCGGAAAATTTACTGTTTTATGCGGCACTGTTGCCGCTCA
+AAACGCCAGACATAGGTCGAACTAAATTCGCCCCCGAGCAACCGTGCGTGGAGAGTGAAGTTGGGTTATATAGTTCGGACTGTGTTTGGTGATTCGGTACTAGGTTGCGGTGTCACTTGATAACTCATCCCTACATTTTTGTTTTTAGAGGCTCTCGCCGAAGCGATTCATCACCAGTTACGGAAGCACTGTGGAGCGAGCACAACAAGGGTCGGGAGCGGCTTTAGCCACTACGAACGCATGAGGGCGATTTCGACAGCGCAGTGTATCGCGGACCACAGACGTATGAAATACCCACAGCAGACATGCGACATTCGCGAGGTTGGCAAAGTCACTTATTCCAGTGGGTGCATCCCTTCAGGACCCACTCAGATCTCGCAGGCCACTCATCCACTATACTGCCACTAAGTCTCGGTACATAAGGGGCATATCATCATATACCTACGCGTGCCATTAAATTATGACTACCTGGGATCGAGGACCTTCGTGTGAAACAGACTAGGCACAACGCCAGACTASFSADFTCAGTCCGGAAAATTTACTGTTTTATGCGGCACTGTTGCCGCTCA
 ```
 ### Author
 Rongxin Fang (r3fang@eng.ucsd.edu)
