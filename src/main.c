@@ -61,12 +61,10 @@ int main(int argc, char *argv[])
 	//else if (strcmp(argv[1], "fita") == 0) ret = main_fit_affine(argc-1, argv+1);
 	//else if (strcmp(argv[1], "ov") == 0) ret = main_overlap(argc-1, argv+1);
 	//else if (strcmp(argv[1], "ed") == 0) ret = main_edit_dist(argc-1, argv+1);
-	//else {
-	//	fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
-	//	return 1;
-	//}
-	//err_fflush(stdout);
-	//err_fclose(stdout);
+	else {
+		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
+		return 1;
+	}
 	//if (ret == 0) {
 	//	fprintf(stderr, "[%s] Version: %s\n", __func__, PACKAGE_VERSION);
 	//	fprintf(stderr, "[%s] CMD:", __func__);

@@ -176,8 +176,7 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 static inline int 
 main_fit_affine_jump(int argc, char *argv[]) {
 	opt_t *opt = init_opt(); // initlize options with default settings
-	int c, i, n, *fields;
-	kstring_t *junction_sites = mycalloc(1, kstring_t);
+	int c;
 	srand48(11);
 	while ((c = getopt(argc, argv, "m:u:o:e:j:s")) >= 0) {
 			switch (c) {
@@ -219,7 +218,6 @@ main_fit_affine_jump(int argc, char *argv[]) {
 	//kstring_destory(r1);
 	//kstring_destory(r2);
 	free(opt);
-	kstring_destory(junction_sites);
 	return 0;
 }
 #endif

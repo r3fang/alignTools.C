@@ -70,7 +70,7 @@ typedef struct {
 	int u; // unmatch
 	int j; // jump penality
 	bool s;
-	junction_t *sites;
+	junction_t sites;
 } opt_t;
 
 static inline opt_t 
@@ -82,7 +82,8 @@ static inline opt_t
 	opt->u = -2.0;
 	opt->j = -10.0;
 	opt->s = false;
-	opt->sites = mycalloc(1, junction_t);	
+	opt->sites.size = 0;	
+	opt->sites.pos = NULL;	
 	return opt;
 }
 
@@ -243,42 +244,53 @@ kstring_destory(kstring_t *ks){
 	free(ks);
 }
 
+/*
+ * read two sequences as str1 and str2 from the fasta file;
+ * read junctions sites to opt->sites;
+ * 
+ */
 static inline void 
 kstring_read(char* fname, kstring_t *str1, kstring_t *str2, opt_t *opt){
-	int i, l;		
-	gzFile fp;
-	kseq_t *seq;
+	// input check
+	if(fname == NULL || str1 == NULL || str2 == NULL || opt == NULL) 
+		die("kstring_read: input error");
+	// variables declarision
+	int i, l; gzFile fp; kseq_t *seq;
+	char **tmp_seq = mycalloc(3, char*);
+	char **tmp_comment = mycalloc(3, char*);	
+	// parser fasta
 	fp = gzopen(fname, "r");
 	seq = kseq_init(fp);
-	char **tmp_seq = mycalloc(3, char*);
-	char **tmp_comment = mycalloc(3, char*);
-	
-	//char **tmp_comments = mycalloc(3, char*);
-	i = 0;
-	while((l=kseq_read(seq)) >= 0){
+	i = 0; while((l=kseq_read(seq)) >= 0){
 		if(i >= 2) die("input fasta file has more than 2 sequences");
 		tmp_seq[i] = str_toupper(seq->seq.s);
 		if(seq->comment.s) tmp_comment[i] = strdup(seq->comment.s);
 		i++;
 	}
+	// read sequence
 	if(tmp_seq[0] == NULL || tmp_seq[1] == NULL) die("read_kstring: fail to read sequence");
 	(str1)->s = strdup(tmp_seq[0]); (str1)->l = strlen((str1)->s);
 	(str2)->s = strdup(tmp_seq[1]); (str2)->l = strlen((str2)->s);
-	if(opt != NULL && opt->s){
+	// read the junctions sites if opt != NULL and opt->s==ture
+	if(opt != NULL && opt->s == true){
 		if(tmp_comment[1] == NULL) die("fail to read junction sites");
 		kstring_t *tmp = mycalloc(1, kstring_t);
 		tmp->s = strdup(tmp_comment[1]);
 		tmp->l = strlen(tmp->s);
 		int *fields, i, n;
+		fields = ksplit(tmp, '|', &n);
+		opt->sites.size = n;
+		opt->sites.pos = mycalloc(n, int);
+		for (i = 0; i < n; ++i) opt->sites.pos[i] = atoi(tmp->s + fields[i]);
+		if(tmp) kstring_destory(tmp);
+		if(fields) free(fields);
 	}
-	for(; i >=0; i--){
-		if(tmp_seq[i]) free(tmp_seq[i]);		
-	} 
+	for(; i >=0; i--) if(tmp_seq[i]) free(tmp_seq[i]);	
 	free(tmp_seq);
-	kseq_destroy(seq);
+	if(tmp_comment) free(tmp_comment);
+	if(seq) kseq_destroy(seq);
 	gzclose(fp);
 }
-
 
 static inline bool 
 isvalueinarray(int val, int *arr, int size){
