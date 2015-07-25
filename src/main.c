@@ -33,9 +33,7 @@ static int usage()
 	fprintf(stderr, "         gla        global alignment with affine gap\n");
 	fprintf(stderr, "         sw         classic smith-waterman alignment\n");
 	fprintf(stderr, "         swa        smith-waterman with affine gap\n");
-	fprintf(stderr, "         fit        fitting alignment\n");
-	fprintf(stderr, "         fita       fitting alignment with affine gap\n");
-	fprintf(stderr, "         fitaj      fitting alingment with affine gap plus jump state\n");
+	fprintf(stderr, "         fit        fitting alingment allows affine gap plus jump state\n");
 	fprintf(stderr, "         ov         overlap alignment\n");
 	fprintf(stderr, "         ed         count edit distance\n");
 	fprintf(stderr, "\n");
@@ -56,7 +54,7 @@ int main(int argc, char *argv[])
 	else if (strcmp(argv[1], "gla") == 0) ret = main_global_affine(argc-1, argv+1);
 	else if (strcmp(argv[1], "sw") == 0) ret = main_local(argc-1, argv+1);
 	else if (strcmp(argv[1], "swa") == 0) ret = main_local_affine(argc-1, argv+1);
-	else if (strcmp(argv[1], "fitaj") == 0) ret = main_fit_affine_jump(argc-1, argv+1);
+	else if (strcmp(argv[1], "fit") == 0) ret = main_fit_affine_jump(argc-1, argv+1);
 	//else if (strcmp(argv[1], "fit") == 0) ret = main_fit(argc-1, argv+1);
 	//else if (strcmp(argv[1], "fita") == 0) ret = main_fit_affine(argc-1, argv+1);
 	//else if (strcmp(argv[1], "ov") == 0) ret = main_overlap(argc-1, argv+1);
