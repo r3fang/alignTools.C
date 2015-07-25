@@ -92,11 +92,17 @@ trace_back_fit_affine_jump(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t 
  * fit alignment with affine gap penality
  */
 static inline double 
-align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, junction_t *junctions){
-	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("align: parameter error\n");
+align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, opt_t *opt){
+	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL || opt == NULL) die("align: parameter error\n");
 	if(s1->l > s2->l) die("first sequence must be shorter than the second to do fitting alignment"); 
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
+	junction_t junctions = opt->sites;
+	double match = opt->m;
+	double mismatch = opt->u;
+	double gap = opt->o;
+	double extension = opt->e;
+	double jump_penality = opt->j;
 	// initlize leftmost column
 	int i, j;
 	for(i=0; i<S->m; i++){
@@ -119,7 +125,7 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID any state can goto MID
-			new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? match : mismatch;
 			idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, S->J[i-1][j-1]+new_score, -INFINITY);
 			if(idx == 0) S->pointerM[i][j]=LOW;
 			if(idx == 1) S->pointerM[i][j]=MID;
@@ -127,18 +133,18 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 			if(idx == 3) S->pointerM[i][j]=JUMP;			 
 			
 			// LOW
-			idx = max5(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP, -INFINITY, -INFINITY, -INFINITY);
+			idx = max5(&S->L[i][j], S->L[i-1][j]+extension, S->M[i-1][j]+gap, -INFINITY, -INFINITY, -INFINITY);
 			if(idx == 0) S->pointerL[i][j]=LOW;
 			if(idx == 1) S->pointerL[i][j]=MID;
 			
 			// UPP
-			idx = max5(&S->U[i][j], -INFINITY, S->M[i][j-1]+GAP, S->U[i][j-1]+EXTENSION, -INFINITY, -INFINITY);
+			idx = max5(&S->U[i][j], -INFINITY, S->M[i][j-1]+gap, S->U[i][j-1]+extension, -INFINITY, -INFINITY);
 			if(idx == 1) S->pointerU[i][j]=MID;
 			if(idx == 2) S->pointerU[i][j]=UPP;
 			
 			// JUMP only allowed going to JUMP state at junction sites
-			if(isvalueinarray(j-1, junctions->pos, junctions->size)){
-				idx = max5(&S->J[i][j], -INFINITY, S->M[i][j-1]+JUMP_PENALITY, -INFINITY, S->J[i][j-1], -INFINITY);
+			if(isvalueinarray(j-1, junctions.pos, junctions.size)){
+				idx = max5(&S->J[i][j], -INFINITY, S->M[i][j-1]+jump_penality, -INFINITY, S->J[i][j-1], -INFINITY);
 				if(idx == 1) S->pointerJ[i][j] = MID;			
 				if(idx == 3) S->pointerJ[i][j] = JUMP;			
 			}else{
@@ -199,24 +205,25 @@ main_fit_affine_jump(int argc, char *argv[]) {
 				fprintf(stderr, "         -j INT   jump penality [%d]\n", opt->j);
 				fprintf(stderr, "         -s       weather jump state include\n");
 				fprintf(stderr, "\n");
+				return 1;
 	}
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
 	printf("%s\n", argv[argc-1]);
 	kstring_read(argv[argc-1], ks1, ks2, opt);
-	//if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
-	//if(ks1->l > ks2->l) die("first sequence must be shorter than the second\n");
-	//kstring_t *r1 = mycalloc(1, kstring_t);
-	//kstring_t *r2 = mycalloc(1, kstring_t);
-	//r1->s = mycalloc(ks1->l + ks2->l, char);
-	//r2->s = mycalloc(ks1->l + ks2->l, char);
-	//printf("score=%f\n", align_fit_affine_jump(ks1, ks2, r1, r2, junctions));
-	//printf("%s\n%s\n", r1->s, r2->s);
-	//kstring_destory(ks1);
-	//kstring_destory(ks2);
-	//kstring_destory(r1);
-	//kstring_destory(r2);
+	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
+	if(ks1->l > ks2->l) die("first sequence must be shorter than the second\n");
+	kstring_t *r1 = mycalloc(1, kstring_t);
+	kstring_t *r2 = mycalloc(1, kstring_t);
+	r1->s = mycalloc(ks1->l + ks2->l, char);
+	r2->s = mycalloc(ks1->l + ks2->l, char);
+	printf("score=%f\n", align_fit_affine_jump(ks1, ks2, r1, r2, opt));
+	printf("%s\n%s\n", r1->s, r2->s);
+	kstring_destory(ks1);
+	kstring_destory(ks2);
+	kstring_destory(r1);
+	kstring_destory(r2);
 	free(opt);
 	return 0;
 }
