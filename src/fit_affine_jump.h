@@ -97,6 +97,7 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 	if(s1->l > s2->l) die("first sequence must be shorter than the second to do fitting alignment"); 
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
+	// copy alignment parameter
 	junction_t junctions = opt->sites;
 	double match = opt->m;
 	double mismatch = opt->u;
@@ -126,11 +127,18 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 		for(j=1; j<=s2->l; j++){
 			// MID any state can goto MID
 			new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? match : mismatch;
-			idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, S->J[i-1][j-1]+new_score, -INFINITY);
-			if(idx == 0) S->pointerM[i][j]=LOW;
-			if(idx == 1) S->pointerM[i][j]=MID;
-			if(idx == 2) S->pointerM[i][j]=UPP;
-			if(idx == 3) S->pointerM[i][j]=JUMP;			 
+			if(opt->s == true){
+				idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, S->J[i-1][j-1]+new_score, -INFINITY);
+				if(idx == 0) S->pointerM[i][j]=LOW;
+				if(idx == 1) S->pointerM[i][j]=MID;
+				if(idx == 2) S->pointerM[i][j]=UPP;
+				if(idx == 3) S->pointerM[i][j]=JUMP;			 				
+			}else{
+				idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, -INFINITY, -INFINITY);
+				if(idx == 0) S->pointerM[i][j]=LOW;
+				if(idx == 1) S->pointerM[i][j]=MID;
+				if(idx == 2) S->pointerM[i][j]=UPP;				
+			}
 			
 			// LOW
 			idx = max5(&S->L[i][j], S->L[i-1][j]+extension, S->M[i-1][j]+gap, -INFINITY, -INFINITY, -INFINITY);
@@ -143,18 +151,21 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 			if(idx == 2) S->pointerU[i][j]=UPP;
 			
 			// JUMP only allowed going to JUMP state at junction sites
-			if(isvalueinarray(j-1, junctions.pos, junctions.size)){
-				idx = max5(&S->J[i][j], -INFINITY, S->M[i][j-1]+jump_penality, -INFINITY, S->J[i][j-1], -INFINITY);
-				if(idx == 1) S->pointerJ[i][j] = MID;			
-				if(idx == 3) S->pointerJ[i][j] = JUMP;			
-			}else{
-				idx = max5(&S->J[i][j], -INFINITY, -INFINITY, -INFINITY, S->J[i][j-1], -INFINITY);				
-				if(idx == 3) S->pointerJ[i][j] = JUMP;
+			if(opt->s == true){
+				if(isvalueinarray(j-1, junctions.pos, junctions.size)){
+					idx = max5(&S->J[i][j], -INFINITY, S->M[i][j-1]+jump_penality, -INFINITY, S->J[i][j-1], -INFINITY);
+					if(idx == 1) S->pointerJ[i][j] = MID;			
+					if(idx == 3) S->pointerJ[i][j] = JUMP;			
+				}else{
+					idx = max5(&S->J[i][j], -INFINITY, -INFINITY, -INFINITY, S->J[i][j-1], -INFINITY);				
+					if(idx == 3) S->pointerJ[i][j] = JUMP;
+				}	
 			}
 		}
 	}
 	
 	// find trace-back start point
+	// NOTE: ALWAYS STARTS TRACING BACK FROM MID OR LOW
 	int i_max, j_max;
 	double max_score = -INFINITY;
 	int max_state;
@@ -177,6 +188,7 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 	destory_matrix(S);
 	return max_score;
 }
+
 
 /* main function. */
 static inline int 
