@@ -2,12 +2,12 @@
 
 AlignTools is a collection of C-implemented pairwise DNA sequence alignment tools. It includes following alignment methods:
 
-  - needle (global alignment) 
-  - smith-waterman (local alingment)
-  - global/local alignment allows affine gap
-  - edit distance
+  - needle (global alignment) allows affine gap
+  - smith-waterman (local alingment) allows affine gap
+  - fit alignment allows affine gap plus jump state 
+    (often used for rna-seq alignment with splicing junctions)
   - overlap alignment
-  - fitting alignment allows affine gap plus jump state
+  - edit distance
 
 More features will be added in the near future.
 ### Version
@@ -28,15 +28,15 @@ Contact: Rongxin Fang <r3fang@ucsd.edu>
 
 Usage:   alignTools <command> [options]
 
-Command: gl         classic global alingment (needle)
-         gla        global alignment with affine gap
-         sw         classic smith-waterman alignment
-         swa        smith-waterman with affine gap
-         fit        fitting alingment allows affine gap plus jump state
-         ov         overlap alignment
-         ed         count edit distance
+Command: global     global (needle) alignment allows affine gap
+         local      smith-waterman alignment with affine gap
+         fit        fit alingment allows affine gap plus jump state
+         overlap    overlap alignment
+         edit       edit distance
 ```
-fitting alignment example:
+
+  - fit alingment allows affine gap plus jump state
+
 ```
 $ ./bin/alignTools fit 
 Usage:   alignTools fit [options] <target.fa>
@@ -48,10 +48,29 @@ Options: -m INT   score for a match [1]
          -j INT   jump penality [-10]
          -s       weather jump state included
 
-$./bin/alignTools fit -m 2 -u -2 -s test/test_fit_affine_jump.fa
-score=172.000000
-AAACGCCAGACATA----GAACTAAATTCGCCCCCGAGCAACC------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------GAGACTASFSADFTCAGTCCGGAAAATTTACTGTTTTATGCGGCACTGTTGCCGCTCA
-AAACGCCAGACATAGGTCGAACTAAATTCGCCCCCGAGCAACCGTGCGTGGAGAGTGAAGTTGGGTTATATAGTTCGGACTGTGTTTGGTGATTCGGTACTAGGTTGCGGTGTCACTTGATAACTCATCCCTACATTTTTGTTTTTAGAGGCTCTCGCCGAAGCGATTCATCACCAGTTACGGAAGCACTGTGGAGCGAGCACAACAAGGGTCGGGAGCGGCTTTAGCCACTACGAACGCATGAGGGCGATTTCGACAGCGCAGTGTATCGCGGACCACAGACGTATGAAATACCCACAGCAGACATGCGACATTCGCGAGGTTGGCAAAGTCACTTATTCCAGTGGGTGCATCCCTTCAGGACCCACTCAGATCTCGCAGGCCACTCATCCACTATACTGCCACTAAGTCTCGGTACATAAGGGGCATATCATCATATACCTACGCGTGCCATTAAATTATGACTACCTGGGATCGAGGACCTTCGTGTGAAACAGACTAGGCACAACGCCAGACTASFSADFTCAGTCCGGAAAATTTACTGTTTTATGCGGCACTGTTGCCGCTCA
+$./bin/alignTools fit -m 2 -u -2 -s test/ABI1.fa
 ```
+
+  - global alingment with affine gap
+
+```
+$./bin/alignTools global test/test_global_affine.fa
+
+```
+
+  - local alingment with affine gap
+
+```
+$./bin/alignTools local test/test_local_affine.fa
+
+```
+
+  - edit distance
+
+```
+$./bin/alignTools edit test/test.fa
+
+```
+
 ### Author
 Rongxin Fang (r3fang@eng.ucsd.edu)
