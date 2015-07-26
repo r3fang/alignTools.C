@@ -20,14 +20,16 @@
 #include "kstring.h"   // kstring_t type
 #include "alignment.h"
 
-void min3(double *res, double a1, double a2, double a3){
+static inline void 
+min3(double *res, double a1, double a2, double a3){
 	*res = INFINITY;
 	if(a1 < *res) *res = a1; 
 	if(a2 < *res) *res = a2;
 	if(a3 < *res) *res = a3;
 }
-
-int edit_dist(kstring_t *s1, kstring_t *s2){
+/* calculate edit distance*/
+static inline int 
+edit_dist(kstring_t *s1, kstring_t *s2){
 	if(s1 == NULL || s2 == NULL) die("edit_dist: parameter error\n");
 	size_t m   = s1->l + 1;
 	size_t n   = s2->l + 1;
@@ -47,7 +49,8 @@ int edit_dist(kstring_t *s1, kstring_t *s2){
 }
 
 /* main function. */
-int main_edit_dist(int argc, char *argv[]) {
+static inline int 
+main_edit_dist(int argc, char *argv[]) {
 	kstring_t *ks1, *ks2; 
 	opt_t *opt = mycalloc(1, opt_t);
 	ks1 = mycalloc(1, kstring_t);
