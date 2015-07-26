@@ -126,7 +126,9 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID any state can goto MID
-			new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? match : mismatch;
+			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? match : mismatch;
+			
+			//new_score = (strnicmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? match : mismatch;
 			if(opt->s == true){
 				idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, S->J[i-1][j-1]+new_score, -INFINITY);
 				if(idx == 0) S->pointerM[i][j]=LOW;
