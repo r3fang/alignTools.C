@@ -1,25 +1,24 @@
-# AlignTools
+# alignTools
 
-AlignTools is a collection of C-implemented pairwise DNA sequence alignment tools. It includes following alignment methods:
+alignTools is a collection of C-implemented pairwise DNA sequence alignment tools. It includes following alignment features:
 
-  - needle (global alignment) allows affine gap
-  - smith-waterman (local alingment) allows affine gap
-  - fit alignment allows affine gap plus jump state 
-    (often used for rna-seq alignment with splicing junctions)
+  - needle (global alignment)
+  - smith-waterman (local alingment)
+  - fit alignment allows affine gap plus jump state (e.g. rna-seq with splicing junctions)
   - overlap alignment
   - edit distance
 
 More features will be added in the near future.
 ### Version
-1.0.1
+0.7.23-r15
 
 ### Get Started
 
-Install from github:
+  - Install
 
-```sh
+```
 $ git clone git@github.com:r3fang/alignTools.git
-$ cd AlignTools
+$ cd alignTools
 $ make
 $ ./bin/alignTools
 Program: alignTools (pairwise DNA sequence alignment)
@@ -55,21 +54,18 @@ $./bin/alignTools fit -m 2 -u -2 -s test/ABI1.fa
 
 ```
 $./bin/alignTools global test/test_global_affine.fa
-
 ```
 
   - local alingment with affine gap
 
 ```
 $./bin/alignTools local test/test_local_affine.fa
-
 ```
 
   - edit distance
 
 ```
 $./bin/alignTools edit test/test.fa
-
 ```
 
 ### Author
