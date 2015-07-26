@@ -209,7 +209,7 @@ main_fit_affine_jump(int argc, char *argv[]) {
 	}
 	if (optind + 1 > argc) {
 		fprintf(stderr, "\n");
-				fprintf(stderr, "Usage:   alignTools fitaj [options] <target.fa>\n\n");
+				fprintf(stderr, "Usage:   alignTools fit [options] <target.fa>\n\n");
 				fprintf(stderr, "Options: -m INT   score for a match [%d]\n", opt->m);
 				fprintf(stderr, "         -u INT   mismatch penalty [%d]\n", opt->u);
 				fprintf(stderr, "         -o INT   gap open penalty [%d]\n", opt->o);
