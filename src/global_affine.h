@@ -104,7 +104,7 @@ align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID
-			new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? MATCH : MISMATCH;
 			//new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
 			idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, -INFINITY, -INFINITY);
 			if(idx==0) S->pointerM[i][j] = LOW;
@@ -133,7 +133,7 @@ align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 /* main function. */
 static inline int 
 main_global_affine(int argc, char *argv[]) {
-	opt_t *opt = NULL;	
+	opt_t *opt = mycalloc(1, opt_t);	
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);

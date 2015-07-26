@@ -39,7 +39,7 @@ edit_dist(kstring_t *s1, kstring_t *s2){
 	for(j=0; j < S->n; j++) S->M[0][j] = j;
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
-	        int new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? 0 : 1;
+			int new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? 0 : 1;			
 			min3(&S->M[i][j], S->M[i][j-1] + 1, S->M[i-1][j-1] + new_score, S->M[i-1][j] + 1);
 		}
 	}

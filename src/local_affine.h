@@ -85,7 +85,7 @@ align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID
-			new_score = (strncmp(s1->s+(i-1), s2->s+(j-1), 1) == 0) ? MATCH : MISMATCH;
+			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? MATCH : MISMATCH;
 			idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, 0.0, -INFINITY);
 			if(idx==0) S->pointerM[i][j] = LOW;
 			if(idx==1) S->pointerM[i][j] = MID;

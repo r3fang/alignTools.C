@@ -265,7 +265,7 @@ kstring_read(char* fname, kstring_t *str1, kstring_t *str2, opt_t *opt){
 	
 	i = 0; while((l=kseq_read(seq)) >= 0){
 		if(i >= 2) die("input fasta file has more than 2 sequences");
-		tmp_seq[i] = str_toupper(seq->seq.s);
+		tmp_seq[i] = strdup(seq->seq.s);
 		if(seq->comment.s) tmp_comment[i] = strdup(seq->comment.s);
 		i++;
 	}

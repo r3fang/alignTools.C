@@ -30,11 +30,9 @@ static int usage()
 	fprintf(stderr, "Version: %s\n", PACKAGE_VERSION);
 	fprintf(stderr, "Contact: Rongxin Fang <r3fang@ucsd.edu>\n\n");
 	fprintf(stderr, "Usage:   alignTools <command> [options]\n\n");
-	fprintf(stderr, "Command: gl         classic global alingment (needle)\n");
-	fprintf(stderr, "         gla        global alignment with affine gap\n");
-	fprintf(stderr, "         sw         classic smith-waterman alignment\n");
-	fprintf(stderr, "         swa        smith-waterman with affine gap\n");
-	fprintf(stderr, "         fit        fitting alingment allows affine gap plus jump state\n");
+	fprintf(stderr, "Command: global     global (needle) alignment allows affine gap\n");
+	fprintf(stderr, "         local      smith-waterman with affine gap\n");
+	fprintf(stderr, "         fit        fit alingment allows affine gap plus jump state\n");
 	fprintf(stderr, "         ov         overlap alignment\n");
 	fprintf(stderr, "         ed         edit distance\n");
 	fprintf(stderr, "\n");
@@ -51,8 +49,7 @@ int main(int argc, char *argv[])
 	for (i = 1; i < argc; ++i) ksprintf(&pg, " %s", argv[i]);
 	//bwa_pg = pg.s;
 	if (argc < 2) return usage();
-	if (strcmp(argv[1], "gl") == 0) ret = main_global(argc-1, argv+1);
-	else if (strcmp(argv[1], "gla") == 0) ret = main_global_affine(argc-1, argv+1);
+	else if (strcmp(argv[1], "global") == 0) ret = main_global_affine(argc-1, argv+1);
 	else if (strcmp(argv[1], "sw") == 0) ret = main_local(argc-1, argv+1);
 	else if (strcmp(argv[1], "swa") == 0) ret = main_local_affine(argc-1, argv+1);
 	else if (strcmp(argv[1], "fit") == 0) ret = main_fit_affine_jump(argc-1, argv+1);
