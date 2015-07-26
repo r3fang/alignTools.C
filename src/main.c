@@ -7,6 +7,7 @@
 #include "local.h"
 #include "local_affine.h"
 #include "fit_affine_jump.h"
+#include "edit_dist.h"
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.7.23-r15"
@@ -35,7 +36,7 @@ static int usage()
 	fprintf(stderr, "         swa        smith-waterman with affine gap\n");
 	fprintf(stderr, "         fit        fitting alingment allows affine gap plus jump state\n");
 	fprintf(stderr, "         ov         overlap alignment\n");
-	fprintf(stderr, "         ed         count edit distance\n");
+	fprintf(stderr, "         ed         edit distance\n");
 	fprintf(stderr, "\n");
 	return 1;
 }
@@ -58,7 +59,7 @@ int main(int argc, char *argv[])
 	//else if (strcmp(argv[1], "fit") == 0) ret = main_fit(argc-1, argv+1);
 	//else if (strcmp(argv[1], "fita") == 0) ret = main_fit_affine(argc-1, argv+1);
 	//else if (strcmp(argv[1], "ov") == 0) ret = main_overlap(argc-1, argv+1);
-	//else if (strcmp(argv[1], "ed") == 0) ret = main_edit_dist(argc-1, argv+1);
+	else if (strcmp(argv[1], "ed") == 0) ret = main_edit_dist(argc-1, argv+1);
 	else {
 		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
 		return 1;
