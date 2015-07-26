@@ -134,6 +134,7 @@ align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 static inline int 
 main_global_affine(int argc, char *argv[]) {
 	opt_t *opt = mycalloc(1, opt_t);	
+	opt = init_opt();
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);

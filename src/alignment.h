@@ -254,6 +254,7 @@ kstring_read(char* fname, kstring_t *str1, kstring_t *str2, opt_t *opt){
 	// input check
 	if(fname == NULL || str1 == NULL || str2 == NULL || opt == NULL) 
 		die("kstring_read: input error");
+	
 	// variables declarision
 	int i, l; gzFile fp; kseq_t *seq;
 	char **tmp_seq = mycalloc(3, char*);

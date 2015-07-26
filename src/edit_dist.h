@@ -52,7 +52,8 @@ edit_dist(kstring_t *s1, kstring_t *s2){
 static inline int 
 main_edit_dist(int argc, char *argv[]) {
 	kstring_t *ks1, *ks2; 
-	opt_t *opt = mycalloc(1, opt_t);
+	opt_t *opt = mycalloc(1, opt_t);	
+	opt = init_opt();
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
 	if (argc == 1) {

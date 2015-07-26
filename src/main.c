@@ -2,24 +2,19 @@
 #include <string.h>
 #include "kstring.h"
 #include "utils.h"
-#include "global.h"
 #include "global_affine.h"
-#include "local.h"
 #include "local_affine.h"
 #include "fit_affine_jump.h"
 #include "edit_dist.h"
+#include "overlap.h"
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.7.23-r15"
 #endif
 
-int main_global(int argc, char *argv[]);
 int main_global_affine(int argc, char *argv[]);
-int main_local(int argc, char *argv[]);
 int main_local_affine(int argc, char *argv[]);
-int main_fit(int argc, char *argv[]);
 int main_overlap(int argc, char *argv[]);
-int main_fit_affine(int argc, char *argv[]);
 int main_fit_affine_jump(int argc, char *argv[]);
 int main_edit_dist(int argc, char *argv[]);
 
@@ -33,15 +28,14 @@ static int usage()
 	fprintf(stderr, "Command: global     global (needle) alignment allows affine gap\n");
 	fprintf(stderr, "         local      smith-waterman with affine gap\n");
 	fprintf(stderr, "         fit        fit alingment allows affine gap plus jump state\n");
-	fprintf(stderr, "         ov         overlap alignment\n");
-	fprintf(stderr, "         ed         edit distance\n");
+	fprintf(stderr, "         overlap    overlap alignment\n");
+	fprintf(stderr, "         edit       edit distance\n");
 	fprintf(stderr, "\n");
 	return 1;
 }
 
 int main(int argc, char *argv[])
 {
-	extern char *bwa_pg;
 	int i, ret;
 	double t_real;
 	kstring_t pg = {0,0,0};
@@ -50,13 +44,10 @@ int main(int argc, char *argv[])
 	//bwa_pg = pg.s;
 	if (argc < 2) return usage();
 	else if (strcmp(argv[1], "global") == 0) ret = main_global_affine(argc-1, argv+1);
-	else if (strcmp(argv[1], "sw") == 0) ret = main_local(argc-1, argv+1);
-	else if (strcmp(argv[1], "swa") == 0) ret = main_local_affine(argc-1, argv+1);
+	else if (strcmp(argv[1], "local") == 0) ret = main_local_affine(argc-1, argv+1);
 	else if (strcmp(argv[1], "fit") == 0) ret = main_fit_affine_jump(argc-1, argv+1);
-	//else if (strcmp(argv[1], "fit") == 0) ret = main_fit(argc-1, argv+1);
-	//else if (strcmp(argv[1], "fita") == 0) ret = main_fit_affine(argc-1, argv+1);
-	//else if (strcmp(argv[1], "ov") == 0) ret = main_overlap(argc-1, argv+1);
-	else if (strcmp(argv[1], "ed") == 0) ret = main_edit_dist(argc-1, argv+1);
+	else if (strcmp(argv[1], "overlap") == 0) ret = main_overlap(argc-1, argv+1);
+	else if (strcmp(argv[1], "edit") == 0) ret = main_edit_dist(argc-1, argv+1);
 	else {
 		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
 		return 1;
