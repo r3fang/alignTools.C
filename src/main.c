@@ -5,7 +5,6 @@
 #include "global_affine.h"
 #include "local_affine.h"
 #include "fit_affine_jump.h"
-#include "edit_dist.h"
 #include "overlap.h"
 
 #ifndef PACKAGE_VERSION
