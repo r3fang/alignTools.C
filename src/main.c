@@ -2,7 +2,7 @@
 #include <string.h>
 #include "kstring.h"
 #include "utils.h"
-#include "overlap.h"
+#include "alignment.h"
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.7.23-r15"
