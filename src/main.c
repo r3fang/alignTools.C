@@ -2,6 +2,8 @@
 #include <string.h>
 #include "kstring.h"
 #include "utils.h"
+#include <sys/resource.h>
+#include <sys/time.h>
 #include "alignment.h"
 
 #ifndef PACKAGE_VERSION
@@ -37,7 +39,6 @@ int main(int argc, char *argv[])
 	kstring_t pg = {0,0,0};
 	ksprintf(&pg, "@PG\tID:bwa\tPN:bwa\tVN:%s\tCL:%s", PACKAGE_VERSION, argv[0]);
 	for (i = 1; i < argc; ++i) ksprintf(&pg, " %s", argv[i]);
-	//bwa_pg = pg.s;
 	if (argc < 2) return usage();
 	else if (strcmp(argv[1], "global") == 0) ret = main_global_affine(argc-1, argv+1);
 	else if (strcmp(argv[1], "local") == 0) ret = main_local_affine(argc-1, argv+1);
@@ -48,13 +49,13 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "[main] unrecognized command '%s'\n", argv[1]);
 		return 1;
 	}
-	//if (ret == 0) {
-	//	fprintf(stderr, "[%s] Version: %s\n", __func__, PACKAGE_VERSION);
-	//	fprintf(stderr, "[%s] CMD:", __func__);
-	//	for (i = 0; i < argc; ++i)
-	//		fprintf(stderr, " %s", argv[i]);
-	//	fprintf(stderr, "\n[%s] Real time: %.3f sec; CPU: %.3f sec\n", __func__, realtime() - t_real, cputime());
-	//}
-	//free(bwa_pg);
+	if (ret == 0) {
+		fprintf(stderr, "[%s] Version: %s\n", __func__, PACKAGE_VERSION);
+		fprintf(stderr, "[%s] CMD:", __func__);
+		for (i = 0; i < argc; ++i)
+			fprintf(stderr, " %s", argv[i]);
+		fprintf(stderr, "\n");
+		timeUpdate();
+	}
 	return ret;
 }
