@@ -2,9 +2,6 @@
 #include <string.h>
 #include "kstring.h"
 #include "utils.h"
-//#include "global_affine.h"
-#include "local_affine.h"
-//#include "fit_affine_jump.h"
 #include "overlap.h"
 
 #ifndef PACKAGE_VERSION
