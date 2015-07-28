@@ -23,13 +23,6 @@
 KSEQ_INIT(gzFile, gzread);
 typedef enum { true, false } bool;
 
-// DEFAULT ALIGNMENT PENALITY
-#define GAP                     -3.0
-#define MATCH                    2.0
-#define MISMATCH                -0.5
-#define EXTENSION               -1.0
-#define JUMP_PENALITY           -10.0
-
 // POINTER STATE
 #define LEFT                    100
 #define DIAGONAL                200
@@ -209,6 +202,7 @@ static inline char
 	r[strlen(s)] = '\0';
 	return r;
 }
+
 /*
  * destory kstring
  */
@@ -269,6 +263,9 @@ kstring_read(char* fname, kstring_t *str1, kstring_t *str2, opt_t *opt){
 	gzclose(fp);
 }
 
+/*
+ * check if an element in an array
+ */
 static inline bool 
 isvalueinarray(int val, int *arr, int size){
     int i;
@@ -278,6 +275,7 @@ isvalueinarray(int val, int *arr, int size){
     }
     return false;
 }
+
 /*
  * min value of three
  */
@@ -288,14 +286,16 @@ min3(double *res, double a1, double a2, double a3){
 	if(a2 < *res) *res = a2;
 	if(a3 < *res) *res = a3;
 }
-
 /*--------------------------------------------------------------------*/
 /* 
  * calculate edit distance
  */
 static inline int 
-edit_dist(kstring_t *s1, kstring_t *s2){
-	if(s1 == NULL || s2 == NULL) die("edit_dist: parameter error\n");
+edit_dist(kstring_t *s1, kstring_t *s2, opt_t *opt){
+	if(s1 == NULL || s2 == NULL || opt == NULL) die("edit_dist: parameter error\n");
+	double mismatch = opt->u;
+	double match = 0;
+	double gap = opt->o;
 	size_t m   = s1->l + 1;
 	size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
@@ -304,7 +304,7 @@ edit_dist(kstring_t *s1, kstring_t *s2){
 	for(j=0; j < S->n; j++) S->M[0][j] = j;
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
-			int new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? 0 : 1;			
+			double new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? match : mismatch;			
 			min3(&S->M[i][j],
 			      S->M[i][j-1] + 1, 
 				  S->M[i-1][j-1] + new_score, 
@@ -318,19 +318,33 @@ edit_dist(kstring_t *s1, kstring_t *s2){
 
 /* main function for edit dist */
 static inline int 
-main_edit_dist(int argc, char *argv[]) {
+main_edit_dist(int argc, char *argv[]) {	
+	opt_t *opt = init_opt(); // initlize options with default settings
+	int c;
+	srand48(11);
+	while ((c = getopt(argc, argv, "m:u:o:e")) >= 0) {
+			switch (c) {
+			case 'm': opt->m = atoi(optarg); break;
+			case 'u': opt->u = atoi(optarg); break;
+			case 'o': opt->o = atoi(optarg); break;
+			case 'e': opt->e = atoi(optarg); break;
+			default: return 1;
+		}
+	}
+	if (optind + 1 > argc) {
+		fprintf(stderr, "\n");
+				fprintf(stderr, "Usage:   alignTools edit [options] <target.fa>\n\n");
+				fprintf(stderr, "Options: -u INT   mismatch penalty [%d]\n", opt->u);
+				fprintf(stderr, "         -o INT   gap penalty [%d]\n", opt->o);
+				fprintf(stderr, "\n");
+				return 1;
+	}
 	kstring_t *ks1, *ks2; 
-	opt_t *opt = mycalloc(1, opt_t);	
-	opt = init_opt();
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
-		return 1;
-	}
-	kstring_read(argv[1], ks1, ks2, opt);
+	kstring_read(argv[argc-1], ks1, ks2, opt);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
-	printf("edit_distance=%d\n", edit_dist(ks1, ks2));
+	printf("edit_distance=%d\n", edit_dist(ks1, ks2, opt));
 	kstring_destory(ks1);
 	kstring_destory(ks2);
 	free(opt);
@@ -340,7 +354,6 @@ main_edit_dist(int argc, char *argv[]) {
 /* 
  * global alignment allowing affine gap
  */
-
 static inline void 
 trace_back_gla(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state){
 	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
@@ -387,24 +400,29 @@ trace_back_gla(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, ks
  * Global alignment with affine gap penality
  */
 static inline double 
-align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
+align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, opt_t *opt){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("align: parameter error\n");
+	double mismatch = opt->u;
+	double match = opt->m;
+	double gap = opt->o;
+	double extension = opt->e;
+	
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
 	// initlize DP matrix
 	S->M[0][0] = 0.0;
-	S->L[0][0] = S->U[0][0] = GAP;
+	S->L[0][0] = S->U[0][0] = gap;
 	// initlize 0 column
 	int i, j;
 	for(i=1; i<S->m; i++){
-		S->L[i][0] = GAP + EXTENSION*(i);
+		S->L[i][0] = gap + extension*(i);
 		S->M[i][0] = -INFINITY;
 		S->U[i][0] = -INFINITY;
 	}
 	for(j=1; j<S->n; j++){
 		S->L[0][j] = -INFINITY;
 		S->M[0][j] = -INFINITY;
-		S->U[0][j] = GAP + EXTENSION*(j);
+		S->U[0][j] = gap + extension*(j);
 	}
 	//-------------------------------
 	double new_score;
@@ -413,18 +431,18 @@ align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID
-			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? MATCH : MISMATCH;
+			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? match : mismatch;
 			//new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
 			idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, -INFINITY, -INFINITY);
 			if(idx==0) S->pointerM[i][j] = LOW;
 			if(idx==1) S->pointerM[i][j] = MID;
 			if(idx==2) S->pointerM[i][j] = UPP;
 			// LOW
-			idx = max5(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP, -INFINITY, -INFINITY, -INFINITY);
+			idx = max5(&S->L[i][j], S->L[i-1][j]+extension, S->M[i-1][j]+gap, -INFINITY, -INFINITY, -INFINITY);
 			if(idx==0) S->pointerL[i][j] = LOW;
 			if(idx==1) S->pointerL[i][j] = MID;			
 			// UPP
-			idx = max5(&S->U[i][j], -INFINITY, S->M[i][j-1]+GAP, S->U[i][j-1]+EXTENSION, -INFINITY, -INFINITY);
+			idx = max5(&S->U[i][j], -INFINITY, S->M[i][j-1]+gap, S->U[i][j-1]+extension, -INFINITY, -INFINITY);
 			if(idx==1) S->pointerU[i][j] = MID;
 			if(idx==2) S->pointerU[i][j] = UPP;
 		}
@@ -442,23 +460,40 @@ align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 /* main function for global alignment. */
 static inline int 
 main_global_affine(int argc, char *argv[]) {
-	opt_t *opt = mycalloc(1, opt_t);	
-	opt = init_opt();
+	opt_t *opt = init_opt(); // initlize options with default settings
+	int c;
+	srand48(11);
+	while ((c = getopt(argc, argv, "m:u:o:e:j:s")) >= 0) {
+			switch (c) {
+			case 'm': opt->m = atoi(optarg); break;
+			case 'u': opt->u = atoi(optarg); break;
+			case 'o': opt->o = atoi(optarg); break;
+			case 'e': opt->e = atoi(optarg); break;
+			default: return 1;
+		}
+	}
+	if (optind + 1 > argc) {
+		fprintf(stderr, "\n");
+				fprintf(stderr, "Usage:   alignTools global [options] <target.fa>\n\n");
+				fprintf(stderr, "Options: -m INT   score for a match [%d]\n", opt->m);
+				fprintf(stderr, "         -u INT   mismatch penalty [%d]\n", opt->u);
+				fprintf(stderr, "         -o INT   gap open penalty [%d]\n", opt->o);
+				fprintf(stderr, "         -e INT   gap extension penalty [%d]\n", opt->e);
+				fprintf(stderr, "\n");
+				return 1;
+	}
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
-		return 1;
-	}
-	kstring_read(argv[1], ks1, ks2, opt);
+	kstring_read(argv[argc-1], ks1, ks2, opt);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	kstring_t *r1 = mycalloc(1, kstring_t);
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("score=%f\n", align_gla(ks1, ks2, r1, r2));
+	printf("score=%f\n", align_gla(ks1, ks2, r1, r2, opt));
 	printf("%s\n%s\n", r1->s, r2->s);
+	free(opt);
 	kstring_destory(ks1);
 	kstring_destory(ks2);
 	kstring_destory(r1);
@@ -638,7 +673,6 @@ main_fit_affine_jump(int argc, char *argv[]) {
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	printf("%s\n", argv[argc-1]);
 	kstring_read(argv[argc-1], ks1, ks2, opt);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	if(ks1->l > ks2->l) die("first sequence must be shorter than the second\n");
@@ -659,7 +693,7 @@ main_fit_affine_jump(int argc, char *argv[]) {
 
 static inline void 
 trace_back_local_affine(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
-	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
+	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");	
 	int cur = 0; 
 	int state = MID;
 	while(i>0 && j>0){
@@ -697,8 +731,13 @@ trace_back_local_affine(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *re
  * Global alignment with affine gap penality
  */
 static inline double 
-align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
+align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, opt_t *opt){
 	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("align: parameter error\n");
+	double mismatch = opt->u;
+	double match = opt->m;
+	double gap = opt->o;
+	double extension = opt->e;
+	
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
 	int i, j;
@@ -710,7 +749,7 @@ align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	for(i=1; i<=s1->l; i++){
 		for(j=1; j<=s2->l; j++){
 			// MID
-			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? MATCH : MISMATCH;
+			new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? match : mismatch;
 			idx = max5(&S->M[i][j], S->L[i-1][j-1]+new_score, S->M[i-1][j-1]+new_score, S->U[i-1][j-1]+new_score, 0.0, -INFINITY);
 			if(idx==0) S->pointerM[i][j] = LOW;
 			if(idx==1) S->pointerM[i][j] = MID;
@@ -721,11 +760,11 @@ align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 				i_max = i; j_max = j;
 			}
 			// LOW
-			idx = max5(&S->L[i][j], S->L[i-1][j]+EXTENSION, S->M[i-1][j]+GAP, -INFINITY, -INFINITY, -INFINITY);
+			idx = max5(&S->L[i][j], S->L[i-1][j]+extension, S->M[i-1][j]+gap, -INFINITY, -INFINITY, -INFINITY);
 			if(idx==0) S->pointerL[i][j] = LOW;
 			if(idx==1) S->pointerL[i][j] = MID;
 			// UPP
-			idx = max5(&S->U[i][j], -INFINITY, S->M[i][j-1]+GAP, S->U[i][j-1]+EXTENSION, -INFINITY, -INFINITY);
+			idx = max5(&S->U[i][j], -INFINITY, S->M[i][j-1]+gap, S->U[i][j-1]+extension, -INFINITY, -INFINITY);
 			if(idx==1) S->pointerU[i][j] = MID;
 			if(idx==2) S->pointerU[i][j] = UPP;
 		}
@@ -738,22 +777,39 @@ align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 /* main function. */
 static inline int 
 main_local_affine(int argc, char *argv[]) {
-	opt_t *opt = mycalloc(1, opt_t);
-	opt = init_opt();
+	opt_t *opt = init_opt(); // initlize options with default settings
+	int c;
+	srand48(11);
+	while ((c = getopt(argc, argv, "m:u:o:e:j:s")) >= 0) {
+			switch (c) {
+			case 'm': opt->m = atoi(optarg); break;
+			case 'u': opt->u = atoi(optarg); break;
+			case 'o': opt->o = atoi(optarg); break;
+			case 'e': opt->e = atoi(optarg); break;
+			default: return 1;
+		}
+	}
+	if (optind + 1 > argc) {
+		fprintf(stderr, "\n");
+				fprintf(stderr, "Usage:   alignTools local [options] <target.fa>\n\n");
+				fprintf(stderr, "Options: -m INT   score for a match [%d]\n", opt->m);
+				fprintf(stderr, "         -u INT   mismatch penalty [%d]\n", opt->u);
+				fprintf(stderr, "         -o INT   gap open penalty [%d]\n", opt->o);
+				fprintf(stderr, "         -e INT   gap extension penalty [%d]\n", opt->e);
+				fprintf(stderr, "\n");
+				return 1;
+	}
+	
 	kstring_t *ks1, *ks2; 
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
-		return 1;
-	}
-	kstring_read(argv[1], ks1, ks2, opt);
+	kstring_read(argv[argc-1], ks1, ks2, opt);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	kstring_t *r1 = mycalloc(1, kstring_t);
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("score=%f\n", align_local_affine(ks1, ks2, r1, r2));
+	printf("score=%f\n", align_local_affine(ks1, ks2, r1, r2, opt));
 	printf("%s\n%s\n", r1->s, r2->s);
 	kstring_destory(ks1);
 	kstring_destory(ks2);
@@ -794,8 +850,12 @@ static inline void trace_back_overlap(matrix_t *S, kstring_t *ks1, kstring_t *ks
 /*
  * main function for alignment	
  */
-static inline double align_overlap(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
-	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("global: parameter error\n");
+static inline double align_overlap(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, opt_t *opt){
+	if(s1 == NULL || s2 == NULL || r1 == NULL || r2 == NULL) die("align_overlap: parameter error\n");
+	double mismatch = opt->u;
+	double match = opt->m;
+	double gap = opt->o;
+	double extension = opt->e;
 	size_t m   = s1->l + 1;
 	size_t n   = s2->l + 1;
 	size_t i, j, k, l;
@@ -807,8 +867,8 @@ static inline double align_overlap(kstring_t *s1, kstring_t *s2, kstring_t *r1, 
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
 			//double new_score = match(s1->s[i-1], s2->s[j-1], BLOSUM62);
-			double new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? MATCH : MISMATCH;			
-			idx = max5(&S->M[i][j], S->M[i][j-1] + GAP, S->M[i-1][j-1] + new_score, S->M[i-1][j] + GAP, -INFINITY, -INFINITY);
+			double new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? match : mismatch;			
+			idx = max5(&S->M[i][j], S->M[i][j-1] + gap, S->M[i-1][j-1] + new_score, S->M[i-1][j] + gap, -INFINITY, -INFINITY);
 			if(idx==0) S->pointerM[i][j] = LEFT;
 			if(idx==1) S->pointerM[i][j] = DIAGONAL;
 			if(idx==2) S->pointerM[i][j] = RIGHT;			
@@ -830,25 +890,43 @@ static inline double align_overlap(kstring_t *s1, kstring_t *s2, kstring_t *r1, 
 	return max_score;
 }
 
-/* main function. */
+/* main function for overlap alignment. */
 static inline int main_overlap(int argc, char *argv[]) {
-	opt_t *opt = mycalloc(1, opt_t);	
-	opt = init_opt();
+	opt_t *opt = init_opt(); // initlize options with default settings
+	int c;
+	srand48(11);
+	while ((c = getopt(argc, argv, "m:u:o:e:j:s")) >= 0) {
+			switch (c) {
+			case 'm': opt->m = atoi(optarg); break;
+			case 'u': opt->u = atoi(optarg); break;
+			case 'o': opt->o = atoi(optarg); break;
+			case 'e': opt->e = atoi(optarg); break;
+			default: return 1;
+		}
+	}
+	if (optind + 1 > argc) {
+		fprintf(stderr, "\n");
+				fprintf(stderr, "Usage:   alignTools overlap [options] <target.fa>\n\n");
+				fprintf(stderr, "Options: -m INT   score for a match [%d]\n", opt->m);
+				fprintf(stderr, "         -u INT   mismatch penalty [%d]\n", opt->u);
+				fprintf(stderr, "         -o INT   gap open penalty [%d]\n", opt->o);
+				fprintf(stderr, "         -e INT   gap extension penalty [%d]\n", opt->e);
+				fprintf(stderr, "\n");
+				return 1;
+	}
+	
 	kstring_t *ks1, *ks2;
 	ks1 = mycalloc(1, kstring_t);
 	ks2 = mycalloc(1, kstring_t);
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <in.seq>\n", argv[0]);
-		return 1;
-	}
 	kstring_read(argv[1], ks1, ks2, opt);
 	if(ks1->s == NULL || ks2->s == NULL) die("fail to read sequence\n");
 	kstring_t *r1 = mycalloc(1, kstring_t);
 	kstring_t *r2 = mycalloc(1, kstring_t);
 	r1->s = mycalloc(ks1->l + ks2->l, char);
 	r2->s = mycalloc(ks1->l + ks2->l, char);
-	printf("%f\n", align_overlap(ks1, ks2, r1, r2));
+	printf("%f\n", align_overlap(ks1, ks2, r1, r2, opt));
 	printf("%s\n%s\n", r1->s, r2->s);
+	free(opt);
 	kstring_destory(ks1);
 	kstring_destory(ks2);
 	kstring_destory(r1);
