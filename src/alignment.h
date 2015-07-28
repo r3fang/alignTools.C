@@ -65,8 +65,6 @@ typedef struct {
 } opt_t;
 
 
-#define myalloc(n,type)	(type*)_myalloc((n)*sizeof(type))
-#define mycalloc(n,type) (type*)_mycalloc(n,sizeof(type))
 
 static inline void die (char *format, ...)
 {
@@ -80,13 +78,11 @@ static inline void die (char *format, ...)
   exit (-1) ;
 }
 
-long int totalAllocated = 0 ;
-
+#define mycalloc(n,type) (type*)_mycalloc(n,sizeof(type))
 static inline void *_mycalloc (long number, int size)
 {
   void *p = (void*) calloc (number, size) ;
-  if (!p) die ("mycalloc failure requesting %d of size %d bytes", number, size) ;
-  totalAllocated += number*size ;
+  if (p == NULL) die ("mycalloc failure requesting %d of size %d bytes", number, size) ;
   return p ;
 }
 
@@ -126,17 +122,18 @@ static inline matrix_t
 	matrix_t *S = mycalloc(1, matrix_t);
 	S->m = m;
 	S->n = n;
-	S->L = mycalloc(m, double*);
-	S->M = mycalloc(m, double*);
-	S->U = mycalloc(m, double*);
-	S->J = mycalloc(m, double*);
-	
-	for (i = 0; i < m; i++) {
-      S->M[i] = mycalloc(n, double);
-      S->L[i] = mycalloc(n, double);
-      S->U[i] = mycalloc(n, double);
-      S->J[i] = mycalloc(n, double);
+	S->L = mycalloc(m+1, double*);
+	S->M = mycalloc(m+1, double*);
+	S->U = mycalloc(m+1, double*);
+	S->J = mycalloc(m+1, double*);
+
+	for (i = 0; i < m; i++) {      
+		S->M[i] = mycalloc(n, double);
+		S->L[i] = mycalloc(n, double);
+		S->U[i] = mycalloc(n, double);
+		S->J[i] = mycalloc(n, double);
     }
+	
 	S->pointerM = mycalloc(m, int*);
 	S->pointerU = mycalloc(m, int*);
 	S->pointerL = mycalloc(m, int*);
@@ -249,6 +246,7 @@ kstring_read(char* fname, kstring_t *str1, kstring_t *str2, opt_t *opt){
 		tmp->s = strdup(tmp_comment[1]);
 		tmp->l = strlen(tmp->s);
 		int *fields, i, n;
+		printf("%s\n", tmp->s);
 		fields = ksplit(tmp, '|', &n);
 		opt->sites.size = n;
 		opt->sites.pos = mycalloc(n, int);
@@ -601,6 +599,7 @@ align_fit_affine_jump(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2
 	if(s1->l > s2->l) die("first sequence must be shorter than the second to do fitting alignment"); 
 	size_t m   = s1->l + 1; size_t n   = s2->l + 1;
 	matrix_t *S = create_matrix(m, n);
+	printf("asDAsdaSDAsdasDAsdaSD\n");
 	// copy alignment parameter
 	junction_t junctions = opt->sites;
 	double match = opt->m;
