@@ -20,11 +20,10 @@
 #include "kseq.h"
 #include "kstring.h"
 
-
 KSEQ_INIT(gzFile, gzread);
-
 typedef enum { true, false } bool;
 
+// DEFAULT ALIGNMENT PENALITY
 #define GAP                     -3.0
 #define MATCH                    2.0
 #define MISMATCH                -0.5
@@ -144,8 +143,7 @@ static inline matrix_t
       S->L[i] = mycalloc(n, double);
       S->U[i] = mycalloc(n, double);
       S->J[i] = mycalloc(n, double);
-    }	
-	
+    }
 	S->pointerM = mycalloc(m, int*);
 	S->pointerU = mycalloc(m, int*);
 	S->pointerL = mycalloc(m, int*);
@@ -280,7 +278,9 @@ isvalueinarray(int val, int *arr, int size){
     }
     return false;
 }
-
+/*
+ * min value of three
+ */
 static inline void 
 min3(double *res, double a1, double a2, double a3){
 	*res = INFINITY;
@@ -288,7 +288,11 @@ min3(double *res, double a1, double a2, double a3){
 	if(a2 < *res) *res = a2;
 	if(a3 < *res) *res = a3;
 }
-/* calculate edit distance*/
+
+/*--------------------------------------------------------------------*/
+/* 
+ * calculate edit distance
+ */
 static inline int 
 edit_dist(kstring_t *s1, kstring_t *s2){
 	if(s1 == NULL || s2 == NULL) die("edit_dist: parameter error\n");
@@ -301,7 +305,10 @@ edit_dist(kstring_t *s1, kstring_t *s2){
 	for(i = 1; i <= s1->l; i++){
 		for(j = 1; j <= s2->l; j++){
 			int new_score = ((s1->s[i-1] - s2->s[j-1]) == 0) ? 0 : 1;			
-			min3(&S->M[i][j], S->M[i][j-1] + 1, S->M[i-1][j-1] + new_score, S->M[i-1][j] + 1);
+			min3(&S->M[i][j],
+			      S->M[i][j-1] + 1, 
+				  S->M[i-1][j-1] + new_score, 
+				  S->M[i-1][j] + 1);
 		}
 	}
 	int res = (int) S->M[s1->l][s2->l];
@@ -309,7 +316,7 @@ edit_dist(kstring_t *s1, kstring_t *s2){
 	return res;
 }
 
-/* main function. */
+/* main function for edit dist */
 static inline int 
 main_edit_dist(int argc, char *argv[]) {
 	kstring_t *ks1, *ks2; 
@@ -329,6 +336,11 @@ main_edit_dist(int argc, char *argv[]) {
 	free(opt);
 	return 0;
 }
+/*--------------------------------------------------------------------*/
+/* 
+ * global alignment allowing affine gap
+ */
+
 static inline void 
 trace_back_gla(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state){
 	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
@@ -427,7 +439,7 @@ align_gla(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2){
 	return max_score;
 }
 
-/* main function. */
+/* main function for global alignment. */
 static inline int 
 main_global_affine(int argc, char *argv[]) {
 	opt_t *opt = mycalloc(1, opt_t);	
@@ -454,6 +466,8 @@ main_global_affine(int argc, char *argv[]) {
 	return 0;
 }
 
+/*--------------------------------------------------------------------*/
+/* fit alignment for fit alignment*/
 static inline void 
 trace_back_fit_affine_jump(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int state, int i, int j){
 	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");
