@@ -10,10 +10,10 @@ alignTools is a collection of C-implemented tools for pairwise DNA sequence alig
 
 More features will be added in the near future.
 
-### Version
+## Version
 0.7.23-r15
 
-### Get Started
+## Get Started
 
   - Install
 
@@ -105,5 +105,5 @@ Options: -u INT   mismatch penalty [-2]
 $./bin/alignTools edit -u 1 -o 2 test/test_edit.fa
 ```
 
-### Author
+## Author
 Rongxin Fang (r3fang@eng.ucsd.edu)
