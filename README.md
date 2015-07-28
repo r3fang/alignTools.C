@@ -8,6 +8,9 @@ alignTools is a collection of C-implemented tools for pairwise DNA sequence alig
   - overlap alignment 
   - edit distance
 
+![alignment](https://github.com/r3fang/alignTools/blob/master/img/global_local_fit_overlap_REP.png)
+
+
 More features will be added in the near future.
 
 ## Version
