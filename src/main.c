@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "kstring.h"
-#include "utils.h"
-#include <sys/resource.h>
-#include <sys/time.h>
 #include "alignment.h"
 
 #ifndef PACKAGE_VERSION
@@ -55,7 +52,6 @@ int main(int argc, char *argv[])
 		for (i = 0; i < argc; ++i)
 			fprintf(stderr, " %s", argv[i]);
 		fprintf(stderr, "\n");
-		timeUpdate();
 	}
 	return ret;
 }

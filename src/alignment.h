@@ -14,31 +14,34 @@
 #include <stdarg.h>
 #include <float.h>
 #include <math.h>
-#include <stdarg.h>
-#include "utils.h"
+#include <limits.h>		/* INT_MAX etc. */
+#include <errno.h>
+#include "zlib.h"
 #include "kseq.h"
 #include "kstring.h"
+
 
 KSEQ_INIT(gzFile, gzread);
 
 typedef enum { true, false } bool;
 
-#define GAP 					-3.0
-#define MATCH 					 2.0
-#define MISMATCH 				-0.5
+#define GAP                     -3.0
+#define MATCH                    2.0
+#define MISMATCH                -0.5
 #define EXTENSION               -1.0
 #define JUMP_PENALITY           -10.0
 
 // POINTER STATE
-#define LEFT 					100
-#define DIAGONAL 				200
-#define RIGHT	 				300
+#define LEFT                    100
+#define DIAGONAL                200
+#define RIGHT                   300
 #define HOME                    400
 #define LOW                     500
 #define MID                     600
 #define UPP                     700
 #define JUMP                    800
 
+// scoring matrix and pointer matrix
 typedef struct {
   unsigned int m;
   unsigned int n;
@@ -69,18 +72,30 @@ typedef struct {
 	junction_t sites;
 } opt_t;
 
-static inline opt_t 
-*init_opt(){
-	opt_t *opt = mycalloc(1, opt_t);
-	opt->o = -5.0;
-	opt->e = -1.0;
-	opt->m =  1.0;
-	opt->u = -2.0;
-	opt->j = -10.0;
-	opt->s = false;
-	opt->sites.size = 0;	
-	opt->sites.pos = NULL;	
-	return opt;
+
+#define myalloc(n,type)	(type*)_myalloc((n)*sizeof(type))
+#define mycalloc(n,type) (type*)_mycalloc(n,sizeof(type))
+
+static inline void die (char *format, ...)
+{
+  va_list args ;
+
+  va_start (args, format) ;
+  fprintf (stderr, "FATAL ERROR: ") ;
+  vfprintf (stderr, format, args) ;
+  fprintf (stderr, "\n") ;
+  va_end (args) ;
+  exit (-1) ;
+}
+
+long int totalAllocated = 0 ;
+
+static inline void *_mycalloc (long number, int size)
+{
+  void *p = (void*) calloc (number, size) ;
+  if (!p) die ("mycalloc failure requesting %d of size %d bytes", number, size) ;
+  totalAllocated += number*size ;
+  return p ;
 }
 
 /* max of fix values */
@@ -94,6 +109,20 @@ max5(double *res, double a1, double a2, double a3, double a4, double a5){
 	if(a4 > *res){*res = a4; state = 3;}	
 	if(a5 > *res){*res = a5; state = 4;}	
 	return state;
+}
+
+static inline opt_t 
+*init_opt(){
+	opt_t *opt = mycalloc(1, opt_t);
+	opt->o = -5.0;
+	opt->e = -1.0;
+	opt->m =  1.0;
+	opt->u = -2.0;
+	opt->j = -10.0;
+	opt->s = false;
+	opt->sites.size = 0;	
+	opt->sites.pos = NULL;	
+	return opt;
 }
 
 /*
@@ -247,9 +276,9 @@ isvalueinarray(int val, int *arr, int size){
     int i;
     for (i=0; i < size; i++) {
         if (arr[i] == val)
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 static inline void 
