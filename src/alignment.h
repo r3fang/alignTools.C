@@ -350,6 +350,23 @@ main_edit_dist(int argc, char *argv[]) {
 	free(opt);
 	return 0;
 }
+
+/*--------------------------------------------------------------------*/
+/* Pair wise global alignment with affine gap.                        */
+/* initilize L(i,j), M(i,j), U(i,j):                                  */
+/* M(0,0) = 0                                                         */
+/* M(i,0) = -INF               (i>0 )                                 */
+/* M(0,j) = -INF               (j>0 )                                 */
+/* L(i,0) = open + extension*i (i>=0)                                 */
+/* L(0,j) = -INF               (j>0 )                                 */
+/* U(0,j) = open + extension*j (j>=0)                                 */
+/* reccurrance relations:                                             */
+/* M(i,j) = max{M(i-1, j-1), U(i-1, j-1), L(i-1, j-1)}+s(x,y)         */
+/* U(i,j) = max{M(i-1, j)+gap, U(i-1, j)+extension}                   */
+/* L(i,j) = max{M(i, j-1)+gap, L(i, j-1)+extension}                   */
+/* Traceback:                                                         */
+/* start at largest of M(m,n), L(m,n), U(m,n)                         */
+/* Stop at any of M(0,0), I(0,0), U(0,0)                              */
 /*--------------------------------------------------------------------*/
 /* 
  * global alignment allowing affine gap
@@ -501,6 +518,43 @@ main_global_affine(int argc, char *argv[]) {
 	return 0;
 }
 
+/*--------------------------------------------------------------------*/
+/* Pair wise fit alignment with affine gap and jump state.            */
+/* This could be used to align RNA-seq reads with intron splicing as  */
+/* jump state.                                                        */
+/*                                                                    */
+/* initilize L(i,j), M(i,j), U(i,j):                                  */
+/*--------------------------------------------------------------------*/
+/* M(0,0) = -INF                                                      */
+/* M(i,0) = -INF               (i>0 )                                 */
+/* M(0,j) = 0                  (j>0 )                                 */
+/* L(0,j) = -INF               (j>=0)                                 */
+/* L(i,0) = -INF               (i>=0)                                 */
+/* U(i,0) = -INF               (i>0 )                                 */
+/* U(0,j) = 0                  (j>=0)                                 */
+/* J(0,j) = -INF               (j>=0)                                 */
+/* J(i,0) = -INF               (i>=0)                                 */
+/*                                                                    */
+/* reccurrance relations:                                             */
+/*--------------------------------------------------------------------*/
+/* M(i,j) = max{M(i-1, j-1)+s(x,y), U(i-1, j-1)+s(x,y),               */
+/*              L(i-1, j-1)+s(x,y), J(i-1, j-1)+s(x,y)}               */
+/* U(i,j) = max{M(i-1, j)+GAP, U(i-1, j)+EXTENSION}                   */
+/* L(i,j) = max{M(i, j-1)+GAP, L(i, j-1)+EXTENSION}                   */
+/* We allow pointer move from M to J only at given positions on s2    */
+/* J(i,j) = max{M(i-1, j)+JUMP, U(i-1, j)} if s2[j] = junction   OR   */
+/* J(i,j) = max{M(i-1, j)-INFINITY, U(i-1, j)} if s2[j] = junction    */
+/* Traceback:                                                         */
+/*--------------------------------------------------------------------*/
+/* start at max(M(m,j_max), L(n, j_max)), Stop at any of i=0 on M/L;  */
+/* The rational behind this is no gap allowed to flank s1             */
+/*--------------------------------------------------------------------*/
+/* NOTE:                                                              */
+/* 1. WE ONLY ALLOW STATE CHANGE FROM M(MATCH) TO J(JUMP) AT SPECIFIC */
+/* POSITIONS ON S2.                                                   */ 
+/* 2. WE ALLOW STATE CHANGE FROM JUMP TO MATCH AT ANYWHERE            */
+/* 3. THE READ SHOULD NOT START WITH JUMP AND ALSO SHOULD NOT END     */
+/* WITH JUMP STATE.                                                   */ 
 /*--------------------------------------------------------------------*/
 /* fit alignment for fit alignment*/
 static inline void 
@@ -691,6 +745,25 @@ main_fit_affine_jump(int argc, char *argv[]) {
 }
 
 
+/*--------------------------------------------------------------------*/
+/* local_affine	                                                      */
+/* Pair wise local alignment with affine gap.                         */
+/* initilize L(i,j), M(i,j), U(i,j):                                  */
+/* M(0,0) = 0                                                         */
+/* M(i,0) = 0                  (i>0 )                                 */
+/* M(0,j) = 0                  (j>0 )                                 */
+/* L(0,j) = -INF               (j>=0)                                 */
+/* U(i,0) = -INF               (j>=0)                                 */
+/* reccurrance relations:                                             */
+/* M(i,j) = max{M(i-1, j-1)+s(x,y), U(i-1, j-1)+s(x,y),               */
+/*              L(i-1, j-1)+s(x,y), 0}                                */
+/* U(i,j) = max{M(i-1, j)+gap, U(i-1, j)+extension}                   */
+/* L(i,j) = max{M(i, j-1)+gap, L(i, j-1)+extension}                   */
+/* Traceback:                                                         */
+/* start at max(M(i,j))                                               */
+/* Stop at any of M(0,0)                                              */
+/*--------------------------------------------------------------------*/
+
 static inline void 
 trace_back_local_affine(matrix_t *S, kstring_t *s1, kstring_t *s2, kstring_t *res_ks1, kstring_t *res_ks2, int i, int j){
 	if(S == NULL || s1 == NULL || s2 == NULL || res_ks1 == NULL || res_ks2 == NULL) die("trace_back: paramter error");	
@@ -773,6 +846,7 @@ align_local_affine(kstring_t *s1, kstring_t *s2, kstring_t *r1, kstring_t *r2, o
 	destory_matrix(S);
 	return max_score;
 }
+
 
 /* main function. */
 static inline int 
